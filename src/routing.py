@@ -33,14 +33,17 @@ PROFILE_TO_NETWORK_TYPE = {"car": "drive", "foot": "walk", "bike": "bike"}
 # graph_from_polygon() call for HTTP-level failures, but a raw connection
 # error can still escape and crash the whole pipeline — so this wraps the
 # call again with backoff AND, if the default instance stays down, fails
-# over to public mirrors. Verified 2026-09-04: overpass-api.de was
-# unreachable (connection reset / SSL EOF on every attempt) while
+# over to public mirrors. Verified repeatedly on 2026-09-04 (last checked
+# right before this pipeline run): overpass-api.de was unreachable
+# (connection reset / SSL EOF on every attempt, for over an hour) while
 # overpass.kumi.systems and overpass.osm.ch both responded normally — this
-# is the "documented fallback" the assignment's Phase 2 asks for.
+# is the "documented fallback" the assignment's Phase 2 asks for. Ordered
+# with the two working mirrors first so a confirmed-down default instance
+# doesn't burn retry time on every single department/profile.
 OVERPASS_MIRRORS = (
-    "https://overpass-api.de/api",
     "https://overpass.kumi.systems/api",
     "https://overpass.osm.ch/api",
+    "https://overpass-api.de/api",
 )
 OVERPASS_RETRY_DELAYS_S = (20, 45)  # per mirror, before moving to the next one
 
