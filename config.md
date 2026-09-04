@@ -28,6 +28,20 @@ de demanda fijado más abajo. Todo resultado de ruteo se cachea en disco
 (`data/processed/routing_matrix_*.parquet`) para que una segunda corrida no
 recompute nada.
 
+**Construcción del grafo**: originalmente se planeaba construir los grafos
+directamente desde `data/raw/peru-latest.osm.pbf` (ya descargado) usando `pyrosm`,
+para evitar depender de Overpass API. Se descartó: `pyrosm` depende de `cykhash`,
+que no tiene wheel precompilado para Windows/Python 3.11 y requiere un compilador
+de C++ (Microsoft Visual C++ Build Tools) no instalado en esta máquina — instalarlo
+es un cambio de sistema pesado, igual que Docker/WSL2, así que se evita por la misma
+razón. En su lugar se usa `osmnx.graph_from_polygon()` directamente contra Overpass
+API (descarga en vivo, con caché en disco vía `ox.settings.cache_folder =
+"data/cache/osmnx"`, así que una segunda corrida no repite peticiones). El .pbf ya
+descargado queda documentado como fuente pero no se usa como input directo del
+grafo. Verificado el 2026-09-04: Lambayeque (grafo "drive") tardó ~5 minutos y
+produjo 44,020 nodos / 123,182 aristas tras simplificación y quedarse con la
+componente conexa más grande.
+
 ---
 
 ```yaml
@@ -195,8 +209,14 @@ routing:
 metrics:
   coverage_bands_minutes: [30, 60, 120]
   inequality_measure: "gini"
-  urban_rural_rule: "centro poblado con >= 2000 habitantes y clasificado 'urbano' en SIGMED"
-  cross_analysis_secondary_dimension: "poverty_rate"
+  urban_rural_rule: "centro poblado con población estimada >= urban_pop_threshold, o marcado CAPITAL=1 (capital distrital) en SIGMED"
+  urban_pop_threshold: 2000
+  # De las opciones sugeridas por el enunciado (poverty rate, rurality,
+  # población bajo 5, altitud), se eligió "rurality" porque es la única
+  # que se puede calcular directamente de datos ya en mano (is_urban de
+  # src/sampling.py, ponderado por population_est) sin adquirir una fuente
+  # adicional. No se afirma causalidad: ver reporte, sección Discusión.
+  cross_analysis_secondary_dimension: "rurality"
 
 # --- Dashboard (Fase 4) ---
 dashboard:
