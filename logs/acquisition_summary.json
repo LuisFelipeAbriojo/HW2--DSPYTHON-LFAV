@@ -1,0 +1,18 @@
+{
+  "renipress": {
+    "path": "C:\\Users\\labri\\Documents\\GitHub\\HW2 DS-2026-II-LFAV\\data\\raw\\renipress_raw.csv",
+    "size_mb": 19.8
+  },
+  "sigmed": {
+    "path": "C:\\Users\\labri\\Documents\\GitHub\\HW2 DS-2026-II-LFAV\\data\\raw\\sigmed_centros_poblados",
+    "size_mb": null
+  },
+  "osm_pbf": {
+    "path": "C:\\Users\\labri\\Documents\\GitHub\\HW2 DS-2026-II-LFAV\\data\\raw\\peru-latest.osm.pbf",
+    "size_mb": 256.0
+  },
+  "admin_boundaries": {
+    "path": "C:\\Users\\labri\\Documents\\GitHub\\HW2 DS-2026-II-LFAV\\data\\raw\\limites_distritales.geojson",
+    "size_mb": 1.9
+  }
+}

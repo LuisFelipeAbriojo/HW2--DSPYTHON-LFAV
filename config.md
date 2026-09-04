@@ -61,24 +61,51 @@ paths:
 
 sources:
   renipress:
-    url: "https://www.datosabiertos.gob.pe/dataset/registro-nacional-de-entidades-prestadoras-de-servicios-de-salud-renipress"
-    license: "Datos Abiertos Perú — ODbL-like, ver portal"
+    # Portal CKAN de datosabiertos.gob.pe publica un CSV nuevo cada mes; la
+    # URL de "último mes" no es predecible por patrón porque el nombre de
+    # archivo lleva la fecha exacta de publicación. Por eso acquisition.py
+    # resuelve la URL vigente vía la API CKAN package_show en vez de tenerla
+    # fija aquí. Verificada manualmente el 2026-09-04 (archivo de agosto
+    # 2026, 19.7 MB): https://www.datosabiertos.gob.pe/sites/default/files/RENIPRESS_31-08-2026.csv
+    dataset_page_url: "https://www.datosabiertos.gob.pe/dataset/registro-nacional-de-entidades-prestadoras-de-servicios-de-salud-renipress"
+    ckan_api_url: "https://www.datosabiertos.gob.pe/api/3/action/package_show?id=registro-nacional-de-entidades-prestadoras-de-servicios-de-salud-renipress"
+    license: "Open Data Commons Attribution License — SUSALUD"
     local_raw_name: "renipress_raw.csv"
+    # El portal está detrás de un WAF que bloquea el User-Agent por defecto
+    # de curl/requests (HTTP 418 "posible ataque"). Con un User-Agent de
+    # navegador responde 200 normalmente. acquisition.py debe enviar ese
+    # header siempre.
+    requires_browser_user_agent: true
   sigmed:
-    url: "https://sigmed.minedu.gob.pe/descargas/"
+    # sigmed.minedu.gob.pe/descargas/ es una app interactiva sin URL de
+    # descarga directa visible en el HTML; el botón "Descarga Centros
+    # Poblados" dispara esta petición (confirmada inspeccionando la red del
+    # navegador el 2026-09-04, 12.18 MB, archivo de un único shapefile a
+    # nivel nacional que hay que filtrar a los 3 departamentos en el
+    # pipeline). La página anuncia "Actualizado al 05/02/2020" pero el
+    # Last-Modified real del servidor es 2021-12-10 — se documenta la
+    # discrepancia en el reporte de calidad de datos.
+    url: "https://sigmed.minedu.gob.pe/descargas/archivos/CP_MED.zip"
     license: "MINEDU — dato público, ver portal"
-    local_raw_name: "sigmed_centros_poblados.csv"
+    local_raw_name: "sigmed_centros_poblados.zip"
+    requires_browser_user_agent: false
   osm_pbf:
     url: "https://download.geofabrik.de/south-america/peru-latest.osm.pbf"
     license: "ODbL — OpenStreetMap contributors"
     local_raw_name: "peru-latest.osm.pbf"
+    requires_browser_user_agent: false
   admin_boundaries:
-    # Fuente declarada y citada en el reporte (Fase 5): INEI / Geo GPS Perú.
-    # URL exacta y fecha de descarga se documentan en logs/data_quality_report.md
-    # una vez descargada, por si el portal cambia de dirección.
-    url: "TBD — se documenta al momento de la descarga (Fase 1, día 1)"
-    license: "INEI — dato público"
-    local_raw_name: "limites_distritales.gpkg"
+    # INEI no publica un enlace de descarga directa estable para los
+    # polígonos distritales. Se usa el GeoJSON derivado de cartografía INEI
+    # republicado en el repositorio público juaneladio/peru-geojson (fuente
+    # estándar en proyectos de ciencia de datos sobre Perú), verificado el
+    # 2026-09-04 (1.87 MB). Esta sustitución se documenta como hallazgo
+    # legítimo sobre el estado de los datos abiertos peruanos, tal como
+    # contempla el enunciado.
+    url: "https://raw.githubusercontent.com/juaneladio/peru-geojson/master/peru_distrital_simple.geojson"
+    license: "Datos INEI, republicados por terceros — ver repositorio de origen"
+    local_raw_name: "limites_distritales.geojson"
+    requires_browser_user_agent: false
 
 # --- Definición de capacidad resolutiva (Fase 1) ---
 resolutive_categories:
@@ -98,9 +125,12 @@ non_resolutive_categories:
 # Valores de "estado" en RENIPRESS que cuentan como activo, ya normalizados
 # a mayúsculas/sin tildes. La normalización real (regex, mapeo) vive en
 # src/validation.py — esta lista es la whitelist que consume esa función.
+# Verificado contra los 36,004 registros reales del CSV de agosto 2026: los
+# 7 valores distintos de ESTADO son ACTIVO, CIERRE TEMPORAL DE OFICIO, BAJA
+# DEFINITIVA, BAJA PROVISIONAL, BAJA DEFINITIVA DE OFICIO, BAJA PROVISIONAL
+# DE OFICIO, CIERRE TEMPORAL DE PARTE. Solo ACTIVO cuenta como operativo.
 active_status_values:
   - "ACTIVO"
-  - "EN FUNCIONAMIENTO"
 
 # --- Reglas de validación (Fase 1) ---
 validation:
