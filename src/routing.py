@@ -69,7 +69,11 @@ def _graph_from_polygon_with_retry(poly, network_type: str):
 def _configure_osmnx_cache() -> None:
     cfg = load_config()
     ox.settings.cache_folder = str(cfg.path("cache_dir") / "osmnx")
-    ox.settings.log_console = False
+    # Verbose per-request Overpass logging is left ON: a walk-network query
+    # for a whole department can involve many tiled sub-requests, and
+    # Overpass has proven flaky mid-session (see config.md) — without this,
+    # a stuck request looks identical to a slow one from the pipeline log.
+    ox.settings.log_console = True
 
 
 def _department_polygon(department: str, districts_gdf: gpd.GeoDataFrame):
