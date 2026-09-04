@@ -42,6 +42,18 @@ grafo. Verificado el 2026-09-04: Lambayeque (grafo "drive") tardó ~5 minutos y
 produjo 44,020 nodos / 123,182 aristas tras simplificación y quedarse con la
 componente conexa más grande.
 
+Resiliencia ante fallos de Overpass: durante la corrida real del 2026-09-04, la
+instancia principal (overpass-api.de) dejó de responder a mitad de la Fase 2
+(reset de conexión / SSL EOF en todos los reintentos) mientras el resto de
+internet seguía accesible con normalidad, confirmando que era un problema del
+servidor y no de la red local. src/routing.py reintenta cada mirror con
+backoff (20s, 45s) y, si se agotan, hace failover al siguiente espejo público
+de la lista (overpass-api.de -> overpass.kumi.systems -> overpass.osm.ch),
+verificados accesibles ese mismo día. src/pipeline_phase2.py además envuelve
+cada bloque car/foot/bike en try/except: un fallo en un perfil no bota el
+resto de la corrida, y una segunda ejecución retoma desde lo que ya está
+cacheado en disco.
+
 ---
 
 ```yaml

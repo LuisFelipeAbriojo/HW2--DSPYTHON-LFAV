@@ -38,6 +38,9 @@ report/*.bbl
 report/*.blg
 report/*.synctex.gz
 
+# Harness/session artifacts
+.claude/scheduled_tasks.lock
+
 # OS/editor
 .DS_Store
 Thumbs.db

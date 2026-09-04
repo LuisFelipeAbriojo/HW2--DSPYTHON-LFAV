@@ -28,27 +28,42 @@ logger = get_logger("routing")
 PROFILE_TO_NETWORK_TYPE = {"car": "drive", "foot": "walk", "bike": "bike"}
 
 # Overpass API is a shared, rate-limited public service and occasionally
-# drops connections (SSL EOF, 504 Gateway Timeout) under load. OSMnx already
-# retries within one graph_from_polygon() call for HTTP-level failures, but
-# a raw connection error can still escape and crash the whole pipeline — so
-# this wraps the call again at a higher level with backoff, per the
-# assignment's "process must survive a failed request" requirement.
-OVERPASS_RETRY_DELAYS_S = (30, 60, 120)
+# drops connections (SSL EOF, 504 Gateway Timeout) or is entirely
+# unreachable under load. OSMnx already retries within one
+# graph_from_polygon() call for HTTP-level failures, but a raw connection
+# error can still escape and crash the whole pipeline — so this wraps the
+# call again with backoff AND, if the default instance stays down, fails
+# over to public mirrors. Verified 2026-09-04: overpass-api.de was
+# unreachable (connection reset / SSL EOF on every attempt) while
+# overpass.kumi.systems and overpass.osm.ch both responded normally — this
+# is the "documented fallback" the assignment's Phase 2 asks for.
+OVERPASS_MIRRORS = (
+    "https://overpass-api.de/api",
+    "https://overpass.kumi.systems/api",
+    "https://overpass.osm.ch/api",
+)
+OVERPASS_RETRY_DELAYS_S = (20, 45)  # per mirror, before moving to the next one
 
 
 def _graph_from_polygon_with_retry(poly, network_type: str):
     last_error = None
-    for attempt, delay in enumerate((0, *OVERPASS_RETRY_DELAYS_S)):
-        if delay:
-            logger.warning(
-                "Overpass falló (intento %d), reintentando en %ds: %s", attempt, delay, last_error
-            )
-            time.sleep(delay)
-        try:
-            return ox.graph_from_polygon(poly, network_type=network_type, simplify=True)
-        except (requests.exceptions.RequestException, ConnectionError) as e:
-            last_error = e
-    raise RuntimeError(f"Overpass falló tras {len(OVERPASS_RETRY_DELAYS_S) + 1} intentos") from last_error
+    for mirror in OVERPASS_MIRRORS:
+        ox.settings.overpass_url = mirror
+        for attempt, delay in enumerate((0, *OVERPASS_RETRY_DELAYS_S)):
+            if delay:
+                logger.warning(
+                    "Overpass (%s) falló (intento %d), reintentando en %ds: %s", mirror, attempt, delay, last_error
+                )
+                time.sleep(delay)
+            try:
+                G = ox.graph_from_polygon(poly, network_type=network_type, simplify=True)
+                if mirror != OVERPASS_MIRRORS[0]:
+                    logger.warning("Usando espejo Overpass de respaldo: %s", mirror)
+                return G
+            except (requests.exceptions.RequestException, ConnectionError) as e:
+                last_error = e
+        logger.warning("Espejo Overpass %s agotó sus reintentos, probando el siguiente", mirror)
+    raise RuntimeError(f"Overpass falló en los {len(OVERPASS_MIRRORS)} espejos configurados") from last_error
 
 
 def _configure_osmnx_cache() -> None:

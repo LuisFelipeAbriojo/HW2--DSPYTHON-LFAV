@@ -17,19 +17,31 @@ from src.logging_utils import get_logger
 logger = get_logger("pipeline_phase3")
 
 
-def build_access_dataset() -> pd.DataFrame:
+def build_access_dataset(departments: list[str] | None = None) -> pd.DataFrame:
     """Join the sampled demand points (population_est, is_urban, ubigeo,
     department, province) with each department's car-profile nearest-facility
-    result, into one national (3-department) access_df."""
+    result, into one access_df. Departments whose car routing isn't done yet
+    are skipped with a warning (Phase 2 may still be running) rather than
+    crashing — pass `departments` explicitly to force a specific subset."""
     cfg = load_config()
     demand = pd.read_parquet(cfg.path("processed_dir") / "demand_points_sampled_3depts.parquet")
 
     nearest_parts = []
-    for department in cfg.department_names:
+    ready_departments = []
+    for department in departments or cfg.department_names:
         path = routing.cache_path(department, "car", "nearest")
-        part = pd.read_parquet(path)
-        nearest_parts.append(part)
+        if not path.exists():
+            logger.warning("%s: sin resultados car todavía (Fase 2 en curso o pendiente) — se omite por ahora", department)
+            continue
+        nearest_parts.append(pd.read_parquet(path))
+        ready_departments.append(department)
+
+    if not nearest_parts:
+        raise RuntimeError("Ningún departamento tiene resultados de ruteo car todavía — corre src.pipeline_phase2 primero")
+    logger.info("Departamentos con datos car disponibles: %s", ready_departments)
+
     nearest_car = pd.concat(nearest_parts, ignore_index=False).set_index("demand_id")
+    demand = demand[demand["department"].str.upper().isin({d.upper() for d in ready_departments})]
 
     access_df = demand.join(nearest_car, how="left")
     access_df = metrics.access_time_by_point(access_df.reset_index().rename(columns={"index": "demand_id"}))
@@ -39,21 +51,25 @@ def build_access_dataset() -> pd.DataFrame:
 def build_cross_mode_dataset() -> pd.DataFrame:
     """For every sampled demand point: t_min by car, foot, and bike to the
     nearest RESOLUTIVE facility (nearest-only, not the full matrix — see
-    src/routing.py for why the full matrix is only built for car)."""
+    src/routing.py for why the full matrix is only built for car). A
+    department is included only once car+foot+bike are all done."""
     cfg = load_config()
     parts = []
     for department in cfg.department_names:
-        car = pd.read_parquet(routing.cache_path(department, "car", "nearest"))[["demand_id", "duration_min", "routable"]]
+        paths = {p: routing.cache_path(department, p, "nearest") for p in ("car", "foot", "bike")}
+        if not all(p.exists() for p in paths.values()):
+            logger.warning("%s: ruteo cross-modo incompleto todavía (car/foot/bike) — se omite por ahora", department)
+            continue
+        car = pd.read_parquet(paths["car"])[["demand_id", "duration_min", "routable"]]
         car = car.rename(columns={"duration_min": "t_min_car", "routable": "routable_car"})
-        foot = pd.read_parquet(routing.cache_path(department, "foot", "nearest")).rename(
-            columns={"duration_min": "t_min_foot", "routable": "routable_foot"}
-        )
-        bike = pd.read_parquet(routing.cache_path(department, "bike", "nearest")).rename(
-            columns={"duration_min": "t_min_bike", "routable": "routable_bike"}
-        )
+        foot = pd.read_parquet(paths["foot"]).rename(columns={"duration_min": "t_min_foot", "routable": "routable_foot"})
+        bike = pd.read_parquet(paths["bike"]).rename(columns={"duration_min": "t_min_bike", "routable": "routable_bike"})
         merged = car.merge(foot, on="demand_id", how="outer").merge(bike, on="demand_id", how="outer")
         merged["department"] = department
         parts.append(merged)
+    if not parts:
+        logger.warning("build_cross_mode_dataset: ningún departamento con car+foot+bike completos todavía")
+        return pd.DataFrame(columns=["demand_id", "t_min_car", "routable_car", "t_min_foot", "routable_foot", "t_min_bike", "routable_bike", "department"])
     return pd.concat(parts, ignore_index=True)
 
 
@@ -65,9 +81,14 @@ def build_urban_walk_any_dataset() -> pd.DataFrame:
     parts = []
     for department in cfg.department_names:
         path = routing.cache_path(department, "foot_any", "nearest")
+        if not path.exists():
+            logger.warning("%s: sin resultados foot_any todavía — se omite por ahora", department)
+            continue
         part = pd.read_parquet(path)
         part["department"] = department
         parts.append(part)
+    if not parts:
+        return pd.DataFrame(columns=["demand_id", "duration_min", "routable", "department"])
     return pd.concat(parts, ignore_index=True)
 
 
