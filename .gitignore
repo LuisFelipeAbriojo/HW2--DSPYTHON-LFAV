@@ -10,6 +10,17 @@ __pycache__/
 data/raw/*
 !data/raw/.gitkeep
 
+# Exception: district population (2017 census) is NOT re-downloadable — it
+# was extracted once from INEI's PDF-only publication by
+# scripts/extract_population_by_district.py (needs pdfplumber/pypdf, not
+# part of the main pipeline's requirements.txt). Committed so Phase 3's
+# population weighting works without re-running that extraction.
+!data/raw/poblacion_distrital_*.csv
+# Intermediate PDF/JSON cache from that one-time extraction — reproducible
+# by re-running the script, not needed once the CSVs above exist.
+data/raw/_population_extraction_cache/
+data/raw/censo2017_*.pdf
+
 # OSMnx / routing graph cache (rebuildable from data/raw via src/routing.py)
 data/cache/
 

@@ -98,3 +98,11 @@
 - **action**: dropped (kept first occurrence) — the only rule in this pipeline that removes rows
 - **why**: a duplicated facility_code is definitionally the same IPRESS registered twice; counting it twice would inflate resolutive supply density
 - **source**: sigmed
+
+## population_district_extraction
+
+- **source**: population_census2017
+- **n_districts**: 203
+- **n_flagged**: 6
+- **action**: kept with warning — population figure is used, ubigeo left blank rather than guessed
+- **why**: a handful of districts (e.g. Inkawasi, Megantoni in Cusco; Rosa Panduro, Yaguas in Loreto) were created/recognized after limites_distritales.geojson's cutoff, so they have no matching polygon to join against

@@ -36,3 +36,10 @@ unidecode>=1.3.8
 
 # Dev / testing
 pytest>=8.2.2
+
+# NOT required to run the pipeline: only needed to re-run the one-time
+# scripts/extract_population_by_district.py (its output CSVs are already
+# committed under data/raw/poblacion_distrital_*.csv). Install separately
+# with: pip install pdfplumber pypdf
+# pdfplumber>=0.11.0
+# pypdf>=4.2.0

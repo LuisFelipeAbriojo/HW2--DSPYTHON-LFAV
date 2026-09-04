@@ -70,7 +70,30 @@ def run(force_download: bool = False) -> dict[str, pd.DataFrame]:
     for row in sigmed_report_rows:
         row["source"] = "sigmed"
 
-    all_report_rows = [encoding_report] + renipress_report_rows + sigmed_report_rows
+    # --- Población distrital (Censo 2017 INEI) ---
+    # Extraída una sola vez de PDF por scripts/extract_population_by_district.py
+    # (ver config.md sources.population_census2017) — no forma parte del
+    # pipeline de descarga regular, solo se concatena y valida aquí.
+    pop_frames = []
+    for dept_key, local_name in cfg.raw["sources"]["population_census2017"]["local_raw_names"].items():
+        pop_path = cfg.path("raw_dir") / local_name
+        pop_frames.append(pd.read_csv(pop_path, encoding="utf-8-sig", dtype={"ubigeo": str}))
+    population = pd.concat(pop_frames, ignore_index=True)
+    n_missing_ubigeo = int((population["ubigeo"].isna() | (population["ubigeo"] == "")).sum())
+    logger.info(
+        "Población distrital 2017 cargada: %d distritos (%d sin ubigeo — creados tras el corte de límites)",
+        len(population), n_missing_ubigeo,
+    )
+    population_report_row = {
+        "rule": "population_district_extraction",
+        "source": "population_census2017",
+        "n_districts": int(len(population)),
+        "n_flagged": n_missing_ubigeo,
+        "action": "kept with warning — population figure is used, ubigeo left blank rather than guessed",
+        "why": "a handful of districts (e.g. Inkawasi, Megantoni in Cusco; Rosa Panduro, Yaguas in Loreto) were created/recognized after limites_distritales.geojson's cutoff, so they have no matching polygon to join against",
+    }
+
+    all_report_rows = [encoding_report] + renipress_report_rows + sigmed_report_rows + [population_report_row]
     report_df = run_data_quality_report(all_report_rows)
     logger.info("Reporte de calidad de datos: %d reglas evaluadas", len(report_df))
 
@@ -87,6 +110,10 @@ def run(force_download: bool = False) -> dict[str, pd.DataFrame]:
     logger.info("Escrito: %s (%d filas)", sigmed_out, len(sigmed_gdf))
     logger.info("Escrito: %s (%d filas)", districts_out, len(districts_scope))
 
+    population_out = cfg.path("processed_dir") / "population_by_district_3depts.parquet"
+    population.to_parquet(population_out)
+    logger.info("Escrito: %s (%d filas)", population_out, len(population))
+
     for dept in cfg.department_names:
         sub = renipress_gdf[renipress_gdf["department"].str.upper() == dept.upper()]
         n_resolutive = int(sub["is_resolutive"].sum())
@@ -100,6 +127,7 @@ def run(force_download: bool = False) -> dict[str, pd.DataFrame]:
         "renipress": renipress_gdf,
         "sigmed": sigmed_gdf,
         "districts": districts_scope,
+        "population": population,
         "report": report_df,
     }
 

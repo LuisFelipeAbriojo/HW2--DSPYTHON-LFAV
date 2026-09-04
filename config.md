@@ -106,6 +106,40 @@ sources:
     license: "Datos INEI, republicados por terceros — ver repositorio de origen"
     local_raw_name: "limites_distritales.geojson"
     requires_browser_user_agent: false
+  population_census2017:
+    # SIGMED "Centros Poblados" (fuente de demanda) no trae población por
+    # punto, y datosabiertos.gob.pe no tiene un dataset de población
+    # distrital descargable en CKAN (su endpoint package_search no está
+    # habilitado). INEI solo publica el Censo 2017 como PDFs por
+    # departamento (sin CSV). Se extrajo una única vez con
+    # scripts/extract_population_by_district.py (no forma parte del
+    # pipeline reproducible regular — requiere pdfplumber/pypdf, no
+    # incluidos en requirements.txt — porque el censo 2017 es un dato
+    # estático que no cambia entre corridas).
+    tomo1_urls:
+      lambayeque: "https://www.inei.gob.pe/media/MenuRecursivo/publicaciones_digitales/Est/Lib1560/14TOMO_01.pdf"
+      cusco: "https://www.inei.gob.pe/media/MenuRecursivo/publicaciones_digitales/Est/Lib1559/08TOMO_01.pdf"
+      loreto: "https://www.inei.gob.pe/media/MenuRecursivo/publicaciones_digitales/Est/Lib1561/16TOMO_01.pdf"
+    # "CUADRO N 1: POBLACION CENSADA, POR AREA URBANA Y RURAL; Y SEXO,
+    # SEGUN PROVINCIA, DISTRITO Y EDADES SIMPLES" — solo se tomó la
+    # columna Total. Verificado el 2026-09-04: la suma de distritos
+    # coincide exactamente con el total impreso de cada provincia y
+    # departamento (0 discrepancias) en los 3 departamentos.
+    cuadro1_pages:
+      lambayeque: "61-193"
+      cusco: "65-471"
+      loreto: "65-258"
+    license: "INEI — Censos Nacionales 2017, dato público"
+    local_raw_names:
+      lambayeque: "poblacion_distrital_lambayeque_2017.csv"
+      cusco: "poblacion_distrital_cusco_2017.csv"
+      loreto: "poblacion_distrital_loreto_2017.csv"
+    # Cusco: 4 distritos (Inkawasi, Villa Virgen, Villa Kintiarina,
+    # Megantoni — todos de La Convención) y Loreto: 2 distritos (Rosa
+    # Panduro, Yaguas, de Putumayo) fueron creados/reconocidos después del
+    # corte de limites_distritales.geojson: su población 2017 SÍ se
+    # extrajo correctamente, pero su columna ubigeo queda vacía (no se
+    # inventa). Se documenta como limitación en el reporte.
 
 # --- Definición de capacidad resolutiva (Fase 1) ---
 resolutive_categories:
