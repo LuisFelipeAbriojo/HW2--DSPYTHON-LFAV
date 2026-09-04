@@ -1,0 +1,34 @@
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Raw source data is large (OSM .pbf ~220MB, RENIPRESS/SIGMED exports) and
+# is re-downloaded by src/acquisition.py — not committed by default.
+# Exception: if a source portal is unreachable, the specific cached file
+# used that day is force-added and documented in the data quality report.
+data/raw/*
+!data/raw/.gitkeep
+
+# OSMnx / routing graph cache (rebuildable from data/raw via src/routing.py)
+data/cache/
+
+logs/*.log
+
+# Streamlit
+.streamlit/secrets.toml
+
+# LaTeX build artifacts (keep the committed main.pdf, ignore intermediates)
+report/*.aux
+report/*.log
+report/*.out
+report/*.toc
+report/*.bbl
+report/*.blg
+report/*.synctex.gz
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
