@@ -41,8 +41,8 @@ PROFILE_TO_NETWORK_TYPE = {"car": "drive", "foot": "walk", "bike": "bike"}
 # with the two working mirrors first so a confirmed-down default instance
 # doesn't burn retry time on every single department/profile.
 OVERPASS_MIRRORS = (
-    "https://overpass.kumi.systems/api",
     "https://overpass.osm.ch/api",
+    "https://overpass.kumi.systems/api",
     "https://overpass-api.de/api",
 )
 OVERPASS_RETRY_DELAYS_S = (20, 45)  # per mirror, before moving to the next one
