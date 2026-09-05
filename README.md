@@ -126,8 +126,14 @@ fallar repetidamente en la práctica — un espejo cayó, otro devolvía
 resultados vacíos). Resultados cacheados en `data/cache/graphs/` y
 `data/processed/`.
 
-## Licencia de los datos
+## Licencia
 
-Cada fuente conserva su propia licencia (ver `config.md`); este repositorio
-no redistribuye los archivos crudos por su tamaño — `src/acquisition.py` los
+El código de este repositorio se distribuye bajo licencia [MIT](LICENSE).
+
+Los **datos** son otra cosa: cada fuente conserva su propia licencia
+original (Open Data Commons Attribution para RENIPRESS, ODbL para
+OpenStreetMap, dato público de MINEDU/INEI para SIGMED y el Censo — ver el
+detalle en `config.md`, bloque `sources`). La licencia MIT del código no
+se extiende a los datos ni los relicencia; este repositorio tampoco
+redistribuye los archivos crudos por su tamaño — `src/acquisition.py` los
 regenera localmente en `data/raw/`.
