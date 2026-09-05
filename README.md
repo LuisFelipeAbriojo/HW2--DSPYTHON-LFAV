@@ -17,15 +17,20 @@ declarados en [`config.md`](config.md) y son editables sin tocar código.
 | Andina    | Cusco        |
 | Amazónica | Loreto       |
 
+Cambiar de departamento (o agregar más) es solo edición de `config.md` en
+casi todo el pipeline; el único paso manual (extracción de población del
+Censo 2017, ya que INEI la publica solo en PDF) está documentado en
+[docs/adding_a_department.md](docs/adding_a_department.md).
+
 ## Estado del proyecto
 
 - [x] Entorno y estructura del repositorio
-- [x] Fase 1 — Adquisición y validación de datos (3{,}631 establecimientos,
-  21{,}095 centros poblados, reporte de calidad en `data/outputs/data_quality_report.csv`)
+- [x] Fase 1 — Adquisición y validación de datos (3,631 establecimientos,
+  21,095 centros poblados, reporte de calidad en `data/outputs/data_quality_report.csv`)
 - [x] Fase 2 — Ruteo y matriz de tiempos de viaje (auto/bici/a pie, 3
-  departamentos, 100\% offline — ver `config.md`)
+  departamentos, 100% offline — ver `config.md`)
 - [x] Fase 3 — Construcción de métricas (cobertura, Gini, brechas críticas,
-  cruce con ruralidad, línea recta vs.\ red vial, comparación entre modos)
+  cruce con ruralidad, línea recta vs. red vial, comparación entre modos)
 - [x] Fase 4 — Dashboard en Streamlit (KPIs, mapa coroplético, capa de
   establecimientos, distribución, ranking, simulador de escenarios, panel
   de calidad de datos)
