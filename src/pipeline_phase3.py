@@ -261,19 +261,31 @@ def run() -> None:
     urban_walk_any = build_urban_walk_any_dataset()
     urban_walk_any.to_csv(outputs_dir / "urban_walk_to_any_facility.csv", index=False)
 
+    # LaTeX chokes on '_' outside math mode, so every table gets human labels
+    # before df_to_latex_table -- not just cosmetic, it's what keeps the
+    # report tables readable to someone who isn't reading the source code.
+    display_cols = {
+        "population_weighted_mean_t_min": "Acceso ponderado (min)",
+        "total_population": "Población",
+        "n_demand_points": "Puntos de demanda",
+        "pct_population_unroutable": "\\% sin ruta",
+        "department": "Departamento",
+        "province": "Provincia",
+    }
+
     df_to_latex_table(
         coverage, "table_coverage_bands",
         caption="Cobertura poblacional por banda de tiempo de acceso (auto, instalación resolutiva más cercana)",
         label="tab:coverage-bands",
     )
     df_to_latex_table(
-        critical_gaps.drop(columns=["ubigeo"]).head(15),
+        critical_gaps.drop(columns=["ubigeo"]).head(15).rename(columns=display_cols),
         "table_critical_gaps",
         caption="Los 15 distritos con peor acceso ponderado por población",
         label="tab:critical-gaps",
     )
     df_to_latex_table(
-        department_access, "table_access_by_department",
+        department_access.rename(columns=display_cols), "table_access_by_department",
         caption="Tiempo de acceso ponderado por población, por departamento",
         label="tab:access-by-department",
     )

@@ -35,7 +35,9 @@ def run_data_quality_report(report_rows: list[dict]) -> pd.DataFrame:
 def df_to_latex_table(df: pd.DataFrame, out_name: str, caption: str, label: str) -> None:
     cfg = load_config()
     path = cfg.path("outputs_dir") / f"{out_name}.tex"
-    df.to_latex(path, index=False, float_format="%.2f", caption=caption, label=label)
+    latex = df.to_latex(index=False, float_format="%.2f", caption=caption, label=label)
+    latex = latex.replace("\\begin{table}", "\\begin{table}[h]\n\\centering", 1)
+    path.write_text(latex, encoding="utf-8")
 
 
 def save_figure(fig, out_name: str) -> None:
