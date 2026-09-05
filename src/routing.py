@@ -77,6 +77,15 @@ def _configure_osmnx_cache() -> None:
     # Overpass has proven flaky mid-session (see config.md) — without this,
     # a stuck request looks identical to a slow one from the pipeline log.
     ox.settings.log_console = True
+    # OSMnx's default max_query_area_size (2,500 km^2) split Cusco's ~72,000
+    # km^2 polygon into 62 sub-queries — and against a flaky Overpass mirror,
+    # 62 independent round-trips means 62 independent chances to stall or
+    # drop the connection (observed: nearly 3 hours to finish Cusco's "car"
+    # graph alone). Raising the threshold to 15,000 km^2 cuts that to ~5-8
+    # larger requests instead — fewer round-trips, each one a bigger but
+    # still well within Overpass's 180s per-request timeout (verified: even
+    # Cusco's individual successful sub-requests transferred in seconds).
+    ox.settings.max_query_area_size = 15_000_000_000
 
 
 def _department_polygon(department: str, districts_gdf: gpd.GeoDataFrame):
