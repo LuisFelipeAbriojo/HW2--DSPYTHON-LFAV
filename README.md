@@ -19,15 +19,19 @@ declarados en [`config.md`](config.md) y son editables sin tocar código.
 
 ## Estado del proyecto
 
-Este repositorio está en construcción por fases, siguiendo el cronograma
-sugerido del enunciado. Estado actual:
-
 - [x] Entorno y estructura del repositorio
-- [ ] Fase 1 — Adquisición y validación de datos
-- [ ] Fase 2 — Ruteo y matriz de tiempos de viaje
-- [ ] Fase 3 — Construcción de métricas
-- [ ] Fase 4 — Dashboard en Streamlit
-- [ ] Fase 5 — Reporte en LaTeX
+- [x] Fase 1 — Adquisición y validación de datos (3{,}631 establecimientos,
+  21{,}095 centros poblados, reporte de calidad en `data/outputs/data_quality_report.csv`)
+- [x] Fase 2 — Ruteo y matriz de tiempos de viaje (auto/bici/a pie, 3
+  departamentos, 100\% offline — ver `config.md`)
+- [x] Fase 3 — Construcción de métricas (cobertura, Gini, brechas críticas,
+  cruce con ruralidad, línea recta vs.\ red vial, comparación entre modos)
+- [x] Fase 4 — Dashboard en Streamlit (KPIs, mapa coroplético, capa de
+  establecimientos, distribución, ranking, simulador de escenarios, panel
+  de calidad de datos)
+- [x] Fase 5 — Reporte en LaTeX (`report/main.tex` + `report/main.pdf`, 11
+  páginas)
+- [ ] Video de presentación (a cargo del estudiante, ver enunciado)
 
 ## Estructura del repositorio
 
@@ -67,17 +71,32 @@ pip install -r requirements.txt
 ## Ejecución
 
 ```bash
-# Fase 1 — descarga (idempotente: no vuelve a descargar lo que ya existe)
-python -m src.acquisition
+# Fase 1 — descarga (idempotente) + validación + GeoParquet en data/processed/
+python -m src.pipeline_phase1
 
-# Verificar que la configuración carga correctamente
-python -m src.config
+# Fase 2 — ruteo (auto/bici/a pie, 3 departamentos). Tarda ~1h50 la primera
+# vez (grafos de Cusco/Loreto son grandes); las corridas siguientes son
+# instantáneas gracias al caché en data/cache/graphs/ y data/processed/.
+python -m src.pipeline_phase2
+
+# Fase 3 — métricas + tablas/figuras para el reporte
+python -m src.pipeline_phase3
 
 # Tests
 pytest
 
-# Dashboard (una vez que existan los archivos precomputados en data/processed/)
+# Dashboard (lee únicamente los archivos precomputados de arriba)
 streamlit run app.py
+```
+
+Para recompilar el reporte (Fase 5) hace falta una distribución de LaTeX
+(este proyecto usa [MiKTeX](https://miktex.org/), instalado con
+`winget install MiKTeX.MiKTeX`, sin necesidad de permisos de administrador):
+
+```bash
+cd report
+pdflatex -interaction=nonstopmode main.tex
+pdflatex -interaction=nonstopmode main.tex   # segunda pasada, referencias cruzadas
 ```
 
 ## Fuentes de datos
@@ -92,11 +111,15 @@ Declaradas con URL y licencia en `config.md` (bloque `sources`):
 
 ## Motor de ruteo
 
-**OSMnx + NetworkX**, sin Docker/OSRM — ver la justificación completa en
-`config.md`. En resumen: la máquina de desarrollo no tiene Docker Desktop ni
-WSL2 instalados, y OSMnx+NetworkX es una alternativa 100% Python, viable para
-tres departamentos dentro del límite de 5,000 puntos de demanda del
-enunciado, con resultados cacheados en `data/processed/`.
+Grafos viales construidos **localmente desde el extracto OSM de Perú**
+(`data/raw/peru-latest.osm.pbf`) vía el driver `OSM` de GDAL
+(`pyogrio`/`fiona`), enrutados con Dijkstra de NetworkX — sin Docker/OSRM
+ni llamadas a Overpass API en tiempo de ejecución. Ver `config.md` para la
+justificación completa: se intentó primero `pyrosm` (descartado por
+requerir compilador de C++) y luego Overpass API en vivo (descartado tras
+fallar repetidamente en la práctica — un espejo cayó, otro devolvía
+resultados vacíos). Resultados cacheados en `data/cache/graphs/` y
+`data/processed/`.
 
 ## Licencia de los datos
 
