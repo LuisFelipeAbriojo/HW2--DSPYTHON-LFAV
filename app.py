@@ -338,6 +338,34 @@ else:
         c3.metric("Ganancia marginal", f"{scenario_pop_covered - baseline_pop_covered:,.0f}")
 
 
+# ---------------------------------------------------------- facility siting --
+
+st.subheader("Innovación: recomendación de ubicación (Maximal Covering Location)")
+st.caption(
+    "En vez de elegir manualmente qué establecimiento simular, este algoritmo voraz (greedy MCLP) "
+    "recorre TODOS los candidatos I-3/I-4 y responde: de uno en uno, ¿cuál agrega más población nueva "
+    "cubierta dentro del umbral? Reutiliza la matriz de la Fase 2 — no se vuelve a rutear en vivo."
+)
+try:
+    siting = pd.read_csv(cfg.path("outputs_dir") / "facility_siting_recommendations.csv")
+    siting_f = siting[siting["department"].str.upper().isin(dist_upper)]
+    if siting_f.empty:
+        st.info("Sin recomendaciones para los departamentos seleccionados.")
+    else:
+        st.dataframe(
+            siting_f[["department", "facility_name", "category", "district", "institution", "marginal_population_gained", "cumulative_gain_over_baseline"]],
+            use_container_width=True,
+        )
+        fig_siting = px.bar(
+            siting_f, x="facility_name", y="marginal_population_gained", color="department",
+            labels={"facility_name": "Establecimiento", "marginal_population_gained": "Ganancia marginal de población"},
+            title="Ganancia marginal de población por establecimiento recomendado",
+        )
+        st.plotly_chart(fig_siting, use_container_width=True)
+except FileNotFoundError:
+    st.info("Corre `python -m src.pipeline_phase3` para generar las recomendaciones de siting.")
+
+
 # ------------------------------------------------------------ data quality --
 
 st.subheader("Panel de calidad de datos (Fase 1)")

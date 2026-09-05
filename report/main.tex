@@ -362,6 +362,30 @@ territorio \emph{no hay camino en absoluto} -- el problema ahí no es de
 distancia sino de conectividad binaria, y una métrica pensada para redes
 viales continuas (como el factor de desvío) simplemente no aplica.
 
+\section{Innovación: optimización de ubicación (MCLP voraz)}
+
+Más allá de los 20 puntos base, se implementó una extensión directa del
+simulador de escenarios de la Fase 4: en vez de que el usuario elija
+manualmente qué establecimiento I-3/I-4 simular, un algoritmo voraz de
+\emph{Maximal Covering Location Problem} (MCLP) recorre \textbf{todos} los
+candidatos de un departamento y, uno a la vez, escoge el que agrega más
+población nueva cubierta dentro del umbral de acceso -- reutilizando la
+misma matriz de la Fase 2 (routeada a resolutivos y candidatos por igual),
+sin re-rutear en vivo. Es la aproximación estándar para este problema
+NP-difícil, con garantía teórica de $(1-1/e) \approx 63\%$ del óptimo para
+objetivos de cobertura submodulares como este.
+
+\input{../data/outputs/table_facility_siting.tex}
+
+El resultado conecta directamente con las brechas críticas de la Sección
+4.2: en Cusco, la primera recomendación es el propio establecimiento de
+\textbf{Paucartambo} -- el distrito con peor acceso de todo el estudio --,
+y en Lambayeque, un solo establecimiento (CALIDAD Y SALUD, Olmos)
+agregaría más de 42{,}000 personas cubiertas, casi tanto como los otros
+cuatro candidatos recomendados juntos. Esto convierte el hallazgo
+cualitativo ("hay que priorizar I-3/I-4 sobre construir desde cero") en
+una lista accionable y ordenada por impacto, no solo una intuición.
+
 \section{Limitaciones}
 
 \begin{itemize}

@@ -14,12 +14,51 @@ import pandas as pd
 
 matplotlib.use("Agg")
 
-from src import metrics, routing
+from src import metrics, optimization, routing
 from src.config import load_config
 from src.export import save_figure
 from src.logging_utils import get_logger
 
 logger = get_logger("pipeline_phase3")
+
+
+def run_facility_siting(k: int = 5) -> pd.DataFrame:
+    """Innovation: greedy Maximal Covering Location over each department's
+    I-3/I-4 candidates, using the car matrix and population estimates
+    Phase 2 already computed. See src/optimization.py."""
+    import geopandas as gpd
+
+    cfg = load_config()
+    demand = gpd.read_parquet(cfg.path("processed_dir") / "demand_points_sampled_3depts.parquet")
+    facilities = gpd.read_parquet(cfg.path("processed_dir") / "renipress_clean_3depts.parquet")
+    threshold = cfg.dashboard["default_time_threshold_minutes"]
+
+    parts = []
+    for department in cfg.department_names:
+        matrix_path = routing.cache_path(department, "car", "matrix")
+        if not matrix_path.exists():
+            logger.warning("%s: sin matriz car todavía — se omite del siting", department)
+            continue
+        car_matrix = pd.read_parquet(matrix_path)
+        dept_demand = demand[demand["department"].str.upper() == department.upper()]
+        population_by_demand = dept_demand["population_est"]
+
+        picks = optimization.greedy_facility_siting(car_matrix, population_by_demand, threshold, k=k)
+        if picks.empty:
+            logger.info("%s: sin candidatos que agreguen cobertura nueva a %d min", department, threshold)
+            continue
+        picks["department"] = department
+        picks = picks.merge(
+            facilities[["facility_name", "category", "district", "institution"]],
+            left_on="facility_id", right_index=True, how="left",
+        )
+        parts.append(picks)
+
+    if not parts:
+        return pd.DataFrame()
+    result = pd.concat(parts, ignore_index=True)
+    result.to_csv(load_config().path("outputs_dir") / "facility_siting_recommendations.csv", index=False)
+    return result
 
 
 def generate_figures(coverage: pd.DataFrame, lorenz: pd.DataFrame, gini: float, department_access: pd.DataFrame, urban_rural: pd.DataFrame) -> None:
@@ -261,6 +300,14 @@ def run() -> None:
     urban_walk_any = build_urban_walk_any_dataset()
     urban_walk_any.to_csv(outputs_dir / "urban_walk_to_any_facility.csv", index=False)
 
+    logger.info("Innovación: optimización de ubicación (greedy MCLP) sobre candidatos I-3/I-4...")
+    siting = run_facility_siting(k=5)
+    if not siting.empty:
+        logger.info(
+            "Recomendaciones de siting:\n%s",
+            siting[["department", "facility_name", "category", "district", "marginal_population_gained", "cumulative_gain_over_baseline"]].to_string(index=False),
+        )
+
     # LaTeX chokes on '_' outside math mode, so every table gets human labels
     # before df_to_latex_table -- not just cosmetic, it's what keeps the
     # report tables readable to someone who isn't reading the source code.
@@ -274,6 +321,11 @@ def run() -> None:
         "band": "Banda de acceso",
         "population": "Población",
         "share": "\\% de población",
+        "facility_name": "Establecimiento",
+        "category": "Categoría",
+        "district": "Distrito",
+        "marginal_population_gained": "Ganancia marginal (pob.)",
+        "cumulative_gain_over_baseline": "Ganancia acumulada (pob.)",
     }
 
     coverage_for_table = coverage.assign(share=lambda d: d["share"] * 100)
@@ -293,6 +345,13 @@ def run() -> None:
         caption="Tiempo de acceso ponderado por población, por departamento",
         label="tab:access-by-department",
     )
+    if not siting.empty:
+        siting_cols = ["department", "facility_name", "category", "district", "marginal_population_gained", "cumulative_gain_over_baseline"]
+        df_to_latex_table(
+            siting[siting_cols].rename(columns=display_cols), "table_facility_siting",
+            caption="Recomendación de siting (MCLP voraz): establecimientos I-3/I-4 con mayor ganancia marginal de población cubierta si se elevan a resolutivos",
+            label="tab:facility-siting",
+        )
 
     logger.info("Fase 3 completa. Tablas escritas en %s", outputs_dir)
 
