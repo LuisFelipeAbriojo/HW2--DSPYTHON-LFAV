@@ -311,22 +311,23 @@ else:
     demand = load_demand_points()
     demand_dept = demand[demand["department"].str.upper() == sim_department.upper()]
 
-    baseline_nearest = routing.nearest_facility(car_matrix, origin_id_col="demand_id")
+    # The stored matrix already routes to resolutive facilities AND I-3/I-4
+    # candidates (src/pipeline_phase2.py) precisely so this simulator can
+    # recompute coverage without re-routing live. Baseline = resolutive
+    # rows only; scenario = baseline + whichever candidates got selected.
+    baseline_matrix = car_matrix[car_matrix["facility_is_resolutive"]]
+    baseline_nearest = routing.nearest_facility(baseline_matrix, origin_id_col="demand_id")
     baseline_covered = baseline_nearest[baseline_nearest["duration_min"] <= time_threshold]
     baseline_pop_covered = demand_dept.loc[demand_dept.index.isin(baseline_covered["demand_id"])]["population_est"].sum()
 
-    # scenario matrix needs distances to the newly-upgraded facilities too — if any
-    # weren't part of the original resolutive set, they simply aren't in car_matrix
-    # (only resolutive facilities were routed in Phase 2), which is a real limitation:
     upgraded_in_matrix = car_matrix["facility_id"].isin(selected_upgrade_idx)
     if not upgraded_in_matrix.any():
         st.warning(
-            "Los establecimientos seleccionados no están en la matriz precomputada (solo se ruteó "
-            "hacia los ya-resolutivos en la Fase 2). Para simular candidatos I-3/I-4 reales, "
-            "Fase 2 debe incluirlos también como destinos — ver Limitaciones en el reporte."
+            "Los establecimientos seleccionados no están en la matriz precomputada — probablemente "
+            "fallaron el snapping a la red vial en la Fase 2. Prueba con otro establecimiento."
         )
     else:
-        scenario_matrix = pd.concat([car_matrix, car_matrix[upgraded_in_matrix]])
+        scenario_matrix = pd.concat([baseline_matrix, car_matrix[upgraded_in_matrix]])
         scenario_nearest = routing.nearest_facility(scenario_matrix, origin_id_col="demand_id")
         scenario_covered = scenario_nearest[scenario_nearest["duration_min"] <= time_threshold]
         scenario_pop_covered = demand_dept.loc[demand_dept.index.isin(scenario_covered["demand_id"])]["population_est"].sum()

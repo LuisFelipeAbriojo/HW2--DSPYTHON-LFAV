@@ -63,7 +63,23 @@ def _dept_slices(department, renipress, demand_sampled):
 
 
 def run_car(department, renipress, demand_sampled, districts, snap_reports, failures) -> None:
+    cfg = load_config()
     dept_resolutive, _, dept_demand = _dept_slices(department, renipress, demand_sampled)
+
+    # The full matrix routes to resolutive facilities AND to I-3/I-4
+    # candidates (config.md dashboard.simulator_upgradeable_categories) —
+    # not just the ones already resolutive. Without the candidates as real
+    # destinations, the Phase 4 scenario simulator ("upgrade this I-3 to
+    # resolutive, recompute coverage") has no distances to recompute with,
+    # which defeats the entire point of precomputing a full matrix instead
+    # of just nearest-facility distances.
+    dept_renipress = renipress[renipress["department"].str.upper() == department.upper()]
+    dept_upgrade_candidates = dept_renipress[
+        dept_renipress["category"].isin(cfg.dashboard["simulator_upgradeable_categories"])
+        & dept_renipress["has_valid_coords"]
+    ]
+    dept_all_facilities = pd.concat([dept_resolutive, dept_upgrade_candidates])
+
     try:
         car_matrix_path = routing.cache_path(department, "car", "matrix")
         if car_matrix_path.exists():
@@ -72,23 +88,25 @@ def run_car(department, renipress, demand_sampled, districts, snap_reports, fail
             t0 = time.time()
             G_car = routing.build_graph(department, "car", districts)
             demand_nodes, demand_snap_report = routing.snap_points_to_graph(dept_demand, G_car)
-            facility_nodes, facility_snap_report = routing.snap_points_to_graph(dept_resolutive, G_car)
+            facility_nodes, facility_snap_report = routing.snap_points_to_graph(dept_all_facilities, G_car)
             snap_reports.append({"department": department, "profile": "car", "point_type": "demand", **demand_snap_report})
-            snap_reports.append({"department": department, "profile": "car", "point_type": "resolutive_facility", **facility_snap_report})
+            snap_reports.append({"department": department, "profile": "car", "point_type": "resolutive_and_candidate_facility", **facility_snap_report})
 
             matrix = routing.full_matrix_from_facilities(
                 G_car, demand_nodes, facility_nodes, origin_id_col="demand_id", facility_id_col="facility_id"
             )
+            matrix["facility_is_resolutive"] = matrix["facility_id"].isin(dept_resolutive.index)
             logger.info(
-                "%s: matriz car completa (%d demanda x %d instalaciones = %d filas) en %.1fs",
-                department, len(demand_nodes), len(facility_nodes), len(matrix), time.time() - t0,
+                "%s: matriz car completa (%d demanda x %d instalaciones [%d resolutivas + %d candidatas I-3/I-4] = %d filas) en %.1fs",
+                department, len(demand_nodes), len(facility_nodes), len(dept_resolutive), len(dept_upgrade_candidates), len(matrix), time.time() - t0,
             )
             matrix.to_parquet(car_matrix_path)
 
         car_matrix = pd.read_parquet(car_matrix_path)
-        nearest_car = routing.nearest_facility(car_matrix, origin_id_col="demand_id")
+        baseline_matrix = car_matrix[car_matrix["facility_is_resolutive"]]
+        nearest_car = routing.nearest_facility(baseline_matrix, origin_id_col="demand_id")
         nearest_car.to_parquet(routing.cache_path(department, "car", "nearest"))
-        n_routable = int(car_matrix.groupby("demand_id")["routable"].any().sum())
+        n_routable = int(baseline_matrix.groupby("demand_id")["routable"].any().sum())
         logger.info(
             "%s (car): %d/%d puntos de demanda con al menos 1 instalación resolutiva alcanzable",
             department, n_routable, dept_demand.shape[0],
