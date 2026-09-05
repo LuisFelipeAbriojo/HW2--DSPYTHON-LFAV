@@ -1,0 +1,191 @@
+[
+  {
+    "department": "Lambayeque",
+    "profile": "car",
+    "point_type": "demand",
+    "n_points": 1834,
+    "n_failed": 0,
+    "mean_snap_distance_m": 250.23633383660217,
+    "max_snap_distance_m": 8314.914407779435
+  },
+  {
+    "department": "Lambayeque",
+    "profile": "car",
+    "point_type": "resolutive_and_candidate_facility",
+    "n_points": 176,
+    "n_failed": 0,
+    "mean_snap_distance_m": 3524.66326088945,
+    "max_snap_distance_m": 614918.1638927802
+  },
+  {
+    "department": "Cusco",
+    "profile": "car",
+    "point_type": "demand",
+    "n_points": 1824,
+    "n_failed": 0,
+    "mean_snap_distance_m": 513.1011544526871,
+    "max_snap_distance_m": 13243.233281151986
+  },
+  {
+    "department": "Cusco",
+    "profile": "car",
+    "point_type": "resolutive_and_candidate_facility",
+    "n_points": 381,
+    "n_failed": 0,
+    "mean_snap_distance_m": 600.1050603978391,
+    "max_snap_distance_m": 81754.06316175517
+  },
+  {
+    "department": "Loreto",
+    "profile": "car",
+    "point_type": "demand",
+    "n_points": 1342,
+    "n_failed": 0,
+    "mean_snap_distance_m": 172799.35127993944,
+    "max_snap_distance_m": 474794.86794414575
+  },
+  {
+    "department": "Loreto",
+    "profile": "car",
+    "point_type": "resolutive_and_candidate_facility",
+    "n_points": 163,
+    "n_failed": 0,
+    "mean_snap_distance_m": 117364.55160789487,
+    "max_snap_distance_m": 427285.7348495008
+  },
+  {
+    "department": "Lambayeque",
+    "profile": "foot",
+    "point_type": "demand",
+    "n_points": 1834,
+    "n_failed": 0,
+    "mean_snap_distance_m": 219.3079240785494,
+    "max_snap_distance_m": 7454.796149030733
+  },
+  {
+    "department": "Lambayeque",
+    "profile": "foot",
+    "point_type": "resolutive_facility",
+    "n_points": 18,
+    "n_failed": 0,
+    "mean_snap_distance_m": 19.565972988902427,
+    "max_snap_distance_m": 72.91954103368079
+  },
+  {
+    "department": "Lambayeque",
+    "profile": "foot",
+    "point_type": "any_facility",
+    "n_points": 553,
+    "n_failed": 0,
+    "mean_snap_distance_m": 1823.5898466952033,
+    "max_snap_distance_m": 615844.6493035804
+  },
+  {
+    "department": "Cusco",
+    "profile": "foot",
+    "point_type": "demand",
+    "n_points": 1824,
+    "n_failed": 0,
+    "mean_snap_distance_m": 275.9631779546335,
+    "max_snap_distance_m": 11942.552874184987
+  },
+  {
+    "department": "Cusco",
+    "profile": "foot",
+    "point_type": "resolutive_facility",
+    "n_points": 26,
+    "n_failed": 0,
+    "mean_snap_distance_m": 22.62776666928378,
+    "max_snap_distance_m": 71.36010539875357
+  },
+  {
+    "department": "Cusco",
+    "profile": "foot",
+    "point_type": "any_facility",
+    "n_points": 1080,
+    "n_failed": 0,
+    "mean_snap_distance_m": 2048.604242422405,
+    "max_snap_distance_m": 331830.6616869276
+  },
+  {
+    "department": "Loreto",
+    "profile": "foot",
+    "point_type": "demand",
+    "n_points": 1342,
+    "n_failed": 0,
+    "mean_snap_distance_m": 170365.16461344415,
+    "max_snap_distance_m": 474490.5003214874
+  },
+  {
+    "department": "Loreto",
+    "profile": "foot",
+    "point_type": "resolutive_facility",
+    "n_points": 14,
+    "n_failed": 0,
+    "mean_snap_distance_m": 101527.87842955648,
+    "max_snap_distance_m": 349082.05820418464
+  },
+  {
+    "department": "Loreto",
+    "profile": "foot",
+    "point_type": "any_facility",
+    "n_points": 823,
+    "n_failed": 0,
+    "mean_snap_distance_m": 159678.34775390878,
+    "max_snap_distance_m": 914146.6663907297
+  },
+  {
+    "department": "Lambayeque",
+    "profile": "bike",
+    "point_type": "demand",
+    "n_points": 1834,
+    "n_failed": 0,
+    "mean_snap_distance_m": 219.86043930818306,
+    "max_snap_distance_m": 7454.796149030733
+  },
+  {
+    "department": "Lambayeque",
+    "profile": "bike",
+    "point_type": "resolutive_facility",
+    "n_points": 18,
+    "n_failed": 0,
+    "mean_snap_distance_m": 21.94184255061216,
+    "max_snap_distance_m": 72.91954103368079
+  },
+  {
+    "department": "Cusco",
+    "profile": "bike",
+    "point_type": "demand",
+    "n_points": 1824,
+    "n_failed": 0,
+    "mean_snap_distance_m": 288.8601721923669,
+    "max_snap_distance_m": 11942.552874184987
+  },
+  {
+    "department": "Cusco",
+    "profile": "bike",
+    "point_type": "resolutive_facility",
+    "n_points": 26,
+    "n_failed": 0,
+    "mean_snap_distance_m": 26.174392817996093,
+    "max_snap_distance_m": 71.77066413355303
+  },
+  {
+    "department": "Loreto",
+    "profile": "bike",
+    "point_type": "demand",
+    "n_points": 1342,
+    "n_failed": 0,
+    "mean_snap_distance_m": 170421.5795956353,
+    "max_snap_distance_m": 474685.3395885226
+  },
+  {
+    "department": "Loreto",
+    "profile": "bike",
+    "point_type": "resolutive_facility",
+    "n_points": 14,
+    "n_failed": 0,
+    "mean_snap_distance_m": 101541.72071519683,
+    "max_snap_distance_m": 349275.85020314966
+  }
+]

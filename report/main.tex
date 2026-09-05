@@ -20,22 +20,29 @@
 \maketitle
 
 \begin{abstract}
-Este reporte cuantifica, mediante ruteo sobre la red vial real (OSMnx +
-NetworkX, sin motor comercial ni Docker), el tiempo de acceso por carretera
-a un establecimiento de salud con capacidad resolutiva (categoría II-1 en
+Este reporte cuantifica, mediante ruteo sobre la red vial real (grafos
+construidos localmente desde el extracto OSM de Perú, sin Overpass API ni
+Docker -- ver Metodología), el tiempo de acceso por carretera a un
+establecimiento de salud con capacidad resolutiva (categoría II-1 en
 adelante) para la población de tres departamentos peruanos -- Lambayeque
 (costa), Cusco (andino) y Loreto (amazónico) -- y compara ese acceso entre
-perfiles de auto, bicicleta y a pie. En Lambayeque, el 84.8\% de la
-población accede en auto en 30 minutos o menos a una instalación
-resolutiva, pero con una desigualdad marcada (Gini de acceso ponderado por
-población = 0.659): el acceso rural promedia 24.1 minutos frente a 7.9 en
-zonas urbanas, y el distrito peor ubicado (Cañaris, Ferreñafe) promedia más
-de 180 minutos ponderados. El desvío entre distancia en línea recta y
-distancia real de ruteo es de 1.17x en mediana para Lambayeque (terreno
-plano), una cifra que se espera crezca sustancialmente en Cusco y Loreto
-por relieve y desconexión vial, respectivamente. El 36.6\% de los registros
-nacionales de RENIPRESS carecen de coordenadas válidas, una limitación
-central del análisis discutida en detalle.
+perfiles de auto, bicicleta y a pie sobre 5{,}000 puntos de demanda
+muestreados. El 78.4\% de la población en alcance accede en auto en 30
+minutos o menos a una instalación resolutiva, pero con una desigualdad
+marcada (Gini de acceso ponderado por población = 0.670) y una brecha
+urbano/rural de 2.5x (8.0 vs.\ 19.8 minutos). Cusco (15.4 min promedio
+ponderado) y Loreto (11.7 min) muestran, en promedio, mejor acceso que
+Lambayeque (18.0 min) -- una cifra que resulta engañosa sin el contexto
+correcto: la muestra ponderada por población concentra los puntos de
+demanda donde la gente realmente vive, que en Loreto coincide con las
+pocas zonas conectadas por carretera, mientras la vasta mayoría del
+territorio amazónico -- sin caminos, con transporte fluvial -- queda fuera
+de lo que un análisis vial puede medir. Caminar toma, en mediana, 12.2
+veces más que ir en auto a la misma instalación resolutiva. El distrito
+peor ubicado, Paucartambo (Cusco), promedia 194.7 minutos ponderados. El
+32.4\% de los registros de RENIPRESS en los 3 departamentos carecen de
+coordenadas válidas, una limitación central del análisis discutida en
+detalle.
 \end{abstract}
 
 \tableofcontents
@@ -139,18 +146,45 @@ departamentos:
 
 \subsection{Motor de ruteo y parámetros}
 
-Se usó \textbf{OSMnx + NetworkX}, sin OSRM/Docker: la máquina de desarrollo
-no tiene Docker Desktop ni WSL2 instalados, y levantarlos exige reinicio
-del sistema y permisos de administrador -- el mismo tipo de cambio pesado
-que se evitó al descartar \texttt{pyrosm} (requiere compilador de C++ no
-disponible). Los grafos se descargan en vivo vía
-\texttt{osmnx.graph\_from\_polygon()} contra Overpass API, con caché en
-disco. La instancia por defecto (\texttt{overpass-api.de}) estuvo
-inalcanzable durante más de una hora en la sesión de cómputo; el pipeline
-reintenta con backoff y hace \emph{failover} a espejos públicos
-(\texttt{overpass.kumi.systems}, \texttt{overpass.osm.ch}) -- documentado
-como hallazgo legítimo sobre la fragilidad de la infraestructura abierta,
-no como error del pipeline.
+Se usó \textbf{formato de grafo de OSMnx + Dijkstra de NetworkX}, sin
+OSRM/Docker: la máquina de desarrollo no tiene Docker Desktop ni WSL2
+instalados, y levantarlos exige reinicio del sistema y permisos de
+administrador. El grafo vial se construye \textbf{localmente desde el
+extracto \texttt{peru-latest.osm.pbf}} (Geofabrik) usando el driver nativo
+\texttt{OSM} de GDAL (ya incluido en \texttt{pyogrio}/\texttt{fiona}, sin
+compilador adicional), no contra una API en vivo -- una decisión tomada
+después de que las tres alternativas anteriores fallaran en la práctica
+durante esta misma sesión de cómputo:
+
+\begin{enumerate}
+  \item \texttt{pyrosm} sobre el .pbf local: descartado porque su
+  dependencia \texttt{cykhash} no tiene wheel para Windows/Python 3.11 y
+  exige compilador de C++ no instalado.
+  \item \texttt{osmnx.graph\_from\_polygon()} contra Overpass API en vivo:
+  funcionó para Lambayeque (~5 min) pero falló para Cusco y Loreto durante
+  más de un día de intentos -- la instancia por defecto
+  (\texttt{overpass-api.de}) estuvo inalcanzable (SSL EOF) por más de una
+  hora; el \emph{failover} a \texttt{overpass.kumi.systems} funcionó un
+  rato y luego también cayó; el \emph{failover} a \texttt{overpass.osm.ch}
+  respondía HTTP 200 pero devolvía \textbf{resultados vacíos} para zonas
+  con carreteras reales confirmadas (0 vías encontradas cerca de
+  Quillabamba, Cusco, verificado con una consulta de control) -- un fallo
+  silencioso, sin excepción, más peligroso que una caída limpia.
+  \item \textbf{GDAL sobre el .pbf local (solución final)}: \texttt{src/routing.py}
+  lee la capa \texttt{lines} vía \texttt{pyogrio} (bbox + filtro SQL
+  \texttt{highway IS NOT NULL}), aplica el mismo filtro de categoría de vía
+  que usa OSMnx para \texttt{network\_type='drive'} (capturado literalmente
+  de la consulta Overpass de los intentos anteriores) y filtros propios
+  para \texttt{foot}/\texttt{bike}, y arma el grafo de NetworkX
+  manualmente. 100\% offline, verificado con resultados de ruteo idénticos
+  a los obtenidos vía Overpass para Lambayeque.
+\end{enumerate}
+
+Esta construcción no aplica la simplificación topológica de OSMnx (fusión
+de nodos de grado 2), por lo que el grafo resultante tiene muchos más
+nodos/aristas por la misma red vial (Lambayeque: 244{,}858 nodos aquí vs.\
+44{,}020 con OSMnx simplificado) -- no afecta la corrección de las
+distancias, solo el tiempo de cómputo de Dijkstra.
 
 Velocidades: auto usa la imputación por tipo de vía de OSMnx (con
 respaldo de 40\,km/h); bicicleta y a pie usan velocidades constantes de
@@ -213,77 +247,156 @@ que se indique lo contrario:
 
 \section{Resultados}
 
-\subsection{Cobertura y desigualdad de acceso (Lambayeque)}
+\subsection{Cobertura y acceso por departamento}
 
 \input{../data/outputs/table_coverage_bands.tex}
 \input{../data/outputs/table_access_by_department.tex}
 
+Los tres departamentos muestran patrones de cobertura muy distintos pese a
+tener un acceso ponderado promedio relativamente similar (Cuadro 2): Cusco
+y Loreto no tienen ningún punto de demanda muestreado sin ruta
+(\texttt{\% sin ruta} = 0), mientras Lambayeque tiene una fracción pequeña
+pero no nula (0.05\%). El resultado más llamativo es que Loreto -- el
+departamento con la red vial más pequeña y más fragmentada de los tres --
+exhibe el \emph{mejor} tiempo promedio ponderado (11.7 min). Esto no
+significa que Loreto tenga mejor infraestructura vial: el muestreo
+ponderado por población concentra los puntos de demanda donde vive la
+gente, y en Loreto eso coincide casi exactamente con las pocas zonas
+conectadas por carretera (alrededor de Iquitos y unos pocos ejes viales);
+la inmensa mayoría del territorio amazónico, sin caminos y con transporte
+fluvial, queda simplemente fuera de lo que este análisis por red vial
+puede medir. Es una relación correlacional (dónde vive la gente vs.\ dónde
+hay camino), no causal (Loreto no es más accesible por tener mejor
+infraestructura) -- ver Limitaciones.
+
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.75\textwidth]{figures/fig_coverage_bands.pdf}
-\caption{Cobertura poblacional por banda de tiempo de acceso en auto,
-Lambayeque.}
+\caption{Cobertura poblacional por banda de tiempo de acceso en auto, los
+3 departamentos combinados.}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{figures/fig_access_by_department.pdf}
+\caption{Tiempo de acceso promedio ponderado por población, por
+departamento.}
 \end{figure}
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.6\textwidth]{figures/fig_lorenz_curve.pdf}
 \caption{Curva de Lorenz del tiempo de acceso ponderado por población
-(Gini = 0.659), Lambayeque.}
+(Gini = 0.670), los 3 departamentos combinados.}
 \end{figure}
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.6\textwidth]{figures/fig_urban_rural_contrast.pdf}
-\caption{Tiempo de acceso ponderado: urbano (7.9 min) vs. rural (24.1 min),
-Lambayeque.}
+\caption{Tiempo de acceso ponderado: urbano (8.0 min) vs.\ rural (19.8
+min), los 3 departamentos combinados.}
 \end{figure}
 
 \subsection{Brechas críticas}
 
 \input{../data/outputs/table_critical_gaps.tex}
 
-Los distritos de Cañaris y Ferreñafe (provincia de Ferreñafe, Lambayeque)
-concentran el peor acceso ponderado, con más de 150 minutos promedio -- muy
-por encima del umbral de 30 minutos que define la ``hora dorada''.
+Contrario a lo que el promedio departamental sugeriría, 3 de los 5
+distritos con peor acceso ponderado son de \textbf{Cusco}
+(Paucartambo, 194.7 min; Quispicanchi, 177.1 y 141.9 min en dos de sus
+distritos), no de Lambayeque. El buen promedio de Cusco (15.4 min)
+convive con una cola de distritos rurales andinos extremadamente aislados
+-- exactamente el patrón de alta desigualdad (Gini) que un promedio simple
+esconde, y la razón por la que el enunciado exige ponderar por población y
+reportar la distribución completa, no solo la media.
 
-\section{Discusión: línea recta vs. red vial}
+\subsection{Comparación entre perfiles de desplazamiento}
 
-Para 1{,}833 puntos de demanda alcanzables en Lambayeque, la razón entre
-distancia ruteada y distancia en línea recta (Haversine) al mismo destino
-tiene mediana 1.17x y percentil 90 de 1.59x
-(\texttt{data/outputs/straight\_line\_vs\_network.csv}). Es un desvío bajo,
-consistente con el terreno predominantemente plano de la costa. La
-expectativa -- a verificar cuando termine el ruteo de Cusco y Loreto -- es
-que el factor de desvío sea sustancialmente mayor en Cusco por el relieve
-andino (carreteras que serpentean valles y quebradas) y potencialmente
-extremo o indefinido en Loreto, donde buena parte del territorio no tiene
-red vial conectada y el transporte real ocurre por río -- un caso donde
-ni la distancia en línea recta ni la ruteada por carretera reflejan el
-verdadero costo de desplazamiento.
+Para los 5{,}000 puntos de demanda muestreados, el 99.96\% (4{,}998) tiene
+ruta alcanzable tanto en auto como a pie hacia la instalación resolutiva
+más cercana. La razón mediana entre tiempo a pie y tiempo en auto es
+\textbf{12.2x}, notablemente estable entre departamentos pese a sus
+diferencias de relieve: 13.0x en Lambayeque, 11.3x en Cusco, 10.8x en
+Loreto (\texttt{data/outputs/cross\_mode\_comparison.csv}). Esto contradice
+la expectativa inicial de que el terreno andino de Cusco produciría el
+mayor castigo relativo al caminar -- en la práctica, la razón está
+dominada por la diferencia de velocidad asumida (40\,km/h auto vs.\
+4.5\,km/h a pie, un factor de $\approx$8.9x) más el efecto de que a pie se
+puede usar una red más densa de sendas y caminos que el auto no puede
+recorrer, lo que compensa parcialmente el relieve. En términos prácticos:
+una instalación resolutiva a 25 minutos en auto puede estar a más de 5
+horas caminando, sin importar el departamento.
+
+\section{Discusión: línea recta vs.\ red vial}
+
+Para los puntos de demanda alcanzables en auto, la razón entre distancia
+ruteada y distancia en línea recta (Haversine) al mismo destino
+(\texttt{data/outputs/straight\_line\_vs\_network.csv}) muestra el
+contraste geográfico que motiva este proyecto:
+
+\begin{itemize}
+  \item \textbf{Lambayeque} (costa, terreno plano): mediana 1.18x.
+  \item \textbf{Cusco} (sierra, relieve fuerte): mediana \textbf{1.61x} --
+  36\% más desvío que la costa, consistente con carreteras que serpentean
+  valles y quebradas en vez de ir directo al destino.
+  \item \textbf{Loreto} (selva, red fragmentada): el cálculo directo da
+  una mediana de 0.014x, un valor \emph{matemáticamente imposible} para
+  ruteo real (la distancia por red nunca puede ser menor que la línea
+  recta). Esto no es un hallazgo geográfico sino una alerta metodológica
+  real, discutida en Limitaciones: las distancias de \emph{snapping} en
+  Loreto llegan a superar 470\,km (la mayoría de los puntos de demanda
+  están lejísimos de cualquier camino mapeado), y la distancia de red se
+  mide entre los nodos ya-snapeados mientras la línea recta usa las
+  coordenadas originales -- cuando el snapping mueve un punto cientos de
+  kilómetros, ambas distancias dejan de ser comparables. El número de
+  Loreto se excluye de las conclusiones de esta sección precisamente por
+  esta razón, no se reporta como si fuera válido.
+\end{itemize}
+
+El contraste Lambayeque-Cusco sí es válido y es el hallazgo esperado: el
+relieve andino impone un costo de desvío medible y sustancial incluso
+antes de considerar el tiempo (que además es más lento por curva y
+pendiente). Loreto ilustra un caso distinto y más severo: no es que el
+camino sea más largo que la línea recta, es que en la mayor parte del
+territorio \emph{no hay camino en absoluto} -- el problema ahí no es de
+distancia sino de conectividad binaria, y una métrica pensada para redes
+viales continuas (como el factor de desvío) simplemente no aplica.
 
 \section{Limitaciones}
 
 \begin{itemize}
-  \item \textbf{Cobertura de coordenadas}: 32.36\% de los establecimientos
+  \item \textbf{Cobertura de coordenadas}: 32.4\% de los establecimientos
   de RENIPRESS en los 3 departamentos (36.6\% a nivel nacional) no tienen
   coordenadas utilizables y quedan fuera del cómputo geoespacial -- el
   panorama real de oferta de salud es, en el peor caso, más denso de lo
   que este análisis puede ver.
+  \item \textbf{El factor de desvío no es válido donde el snapping es
+  extremo}: en Loreto, distancias de snapping de hasta 470\,km hacen que
+  la distancia de red (entre nodos snapeados) y la distancia en línea
+  recta (entre coordenadas originales) dejen de ser comparables, dando un
+  resultado matemáticamente imposible (Discusión). El diagnóstico correcto
+  no es "el pipeline tiene un bug" sino "la red vial de Loreto es
+  demasiado fragmentada para que esta métrica tenga sentido ahí" -- en sí
+  mismo, un hallazgo sobre el terreno, no sobre el código.
   \item \textbf{Un establecimiento listado no implica uno operativo}:
   RENIPRESS es un registro administrativo; no confirma personal,
   equipamiento ni disponibilidad real en el momento de una emergencia.
   \item \textbf{Sin disponibilidad de ambulancias}: el análisis mide
   tiempo de viaje por red vial asumiendo un vehículo disponible de
   inmediato en el punto de demanda -- no incorpora tiempos de despacho,
-  flota de ambulancias ni su ubicación real.
+  flota de ambulancias ni su ubicación real. Para Loreto en particular,
+  tampoco modela transporte fluvial, que es el medio real de
+  desplazamiento en la mayor parte del departamento.
   \item \textbf{Población por punto es un supuesto, no una medición}: la
   ponderación por capital (departamental/provincial/distrital) que reparte
   la población censal 2017 entre centros poblados es una heurística
   documentada, no un dato observado. 6 distritos (Inkawasi, Villa Virgen,
   Villa Kintiarina y Megantoni en Cusco; Rosa Panduro y Yaguas en Loreto)
   fueron creados después del corte de la fuente de límites administrativos
-  y quedan sin \texttt{ubigeo} de cruce.
+  y quedan sin \texttt{ubigeo} de cruce. Esta misma ponderación es la
+  causa de que Loreto aparezca con buen acceso promedio (Resultados):
+  concentra la muestra donde vive la gente, que coincide con las zonas
+  conectadas -- no mide la accesibilidad del departamento como un todo.
   \item \textbf{Muestreo de puntos de demanda}: con 21{,}095 puntos de
   demanda frente a un tope de 5{,}000, se aplicó muestreo estratificado
   ponderado por población, lo que introduce error de muestreo respecto al
@@ -291,13 +404,17 @@ verdadero costo de desplazamiento.
   un departamento.
   \item \textbf{Sesgo de cobertura de OpenStreetMap}: la completitud de la
   red vial de OSM es conocidamente desigual en zonas rurales y amazónicas
-  de Perú; un desvío de ruteo alto o una desconexión de grafo en Loreto
-  puede reflejar tanto la realidad geográfica como un vacío de mapeo.
-  \item \textbf{Fragilidad de Overpass API}: la instancia por defecto de
-  Overpass estuvo inalcanzable durante buena parte de la sesión de
-  cómputo; aunque el pipeline hace \emph{failover} a espejos públicos, la
-  dependencia de un servicio público compartido y no garantizado es en sí
-  misma una limitación de reproducibilidad del pipeline en otra fecha.
+  de Perú; la fragmentación observada en Loreto (solo 16--21\% de los
+  nodos brutos en la componente conexa más grande, según el perfil) puede
+  reflejar tanto la realidad geográfica como un vacío de mapeo -- este
+  análisis no puede distinguir ambas causas.
+  \item \textbf{Sin simplificación topológica del grafo}: al construir los
+  grafos directamente desde el .pbf (Metodología) no se fusionan cadenas
+  de nodos de grado 2 como hace OSMnx internamente, por lo que los grafos
+  son 5--10x más grandes de lo estrictamente necesario. No afecta la
+  corrección de los resultados, solo el tiempo de cómputo (la matriz
+  completa de Cusco, con $\sim$1.2M nodos, tardó $\sim$58 minutos frente a
+  los $\sim$5 minutos de Lambayeque).
   \item \textbf{Alcance de 3 departamentos}: los hallazgos no se
   extrapolan directamente a los 21 departamentos peruanos que quedan
   fuera del alcance.
@@ -305,17 +422,30 @@ verdadero costo de desplazamiento.
 
 \section{Conclusiones y recomendaciones}
 
-Incluso en Lambayeque -- el departamento de mejor conectividad vial de los
-tres en alcance -- el acceso a salud resolutiva es marcadamente desigual: un
-Gini de 0.659 y una brecha de 3x entre acceso urbano y rural (7.9 vs.\
-24.1 minutos) muestran que el promedio departamental esconde a los
-distritos rurales de Ferreñafe, donde la ``hora dorada'' no existe en la
-práctica (150+ minutos promedio ponderado). La recomendación de primer
-orden, pendiente de confirmar con los resultados de Cusco y Loreto, es
+El hallazgo central de este análisis no es un número único sino un
+contraste: el acceso a salud resolutiva en los 3 departamentos es
+marcadamente desigual (Gini = 0.670) y esa desigualdad tiene una geografía
+distinta en cada uno. En \textbf{Lambayeque}, el problema es la brecha
+urbano/rural clásica dentro de un territorio bien conectado. En
+\textbf{Cusco}, pese a tener el mejor promedio ponderado de los tres
+(15.4 min), esconde los distritos individuales más extremos de todo el
+estudio (Paucartambo, 194.7 min) -- el relieve andino golpea a bolsones
+rurales específicos, no al departamento entero. En \textbf{Loreto}, la
+pregunta de acceso vial pierde sentido para la mayoría del territorio: no
+es que el acceso sea lento, es que la red vial simplemente no llega, y el
+transporte real es fluvial -- un modo que este análisis no puede medir
+con los datos y el motor de ruteo usados aquí.
+
+La recomendación de primer orden es doble: (1) en Cusco y Lambayeque,
 priorizar la elevación de categoría de establecimientos I-3/I-4 ya
-ubicados en esos distritos rurales -- exactamente el ejercicio que permite
-el simulador de escenarios de la Fase 4 -- por sobre construir nueva
-infraestructura desde cero.
+ubicados en los distritos rurales identificados en el ranking de brechas
+críticas -- exactamente el ejercicio que permite el simulador de
+escenarios de la Fase 4, sin necesidad de construir infraestructura nueva
+desde cero; y (2) en Loreto, reconocer que un indicador de acceso por
+carretera no es la herramienta correcta para dirigir política pública, y
+que cualquier extensión de este proyecto a la Amazonía debería incorporar
+rutas fluviales como una red de transporte separada, no como una extensión
+de la red vial.
 
 \section{Referencias}
 

@@ -271,10 +271,14 @@ def run() -> None:
         "pct_population_unroutable": "\\% sin ruta",
         "department": "Departamento",
         "province": "Provincia",
+        "band": "Banda de acceso",
+        "population": "Población",
+        "share": "\\% de población",
     }
 
+    coverage_for_table = coverage.assign(share=lambda d: d["share"] * 100)
     df_to_latex_table(
-        coverage, "table_coverage_bands",
+        coverage_for_table.rename(columns=display_cols), "table_coverage_bands",
         caption="Cobertura poblacional por banda de tiempo de acceso (auto, instalación resolutiva más cercana)",
         label="tab:coverage-bands",
     )

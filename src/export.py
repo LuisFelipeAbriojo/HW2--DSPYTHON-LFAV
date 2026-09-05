@@ -37,6 +37,12 @@ def df_to_latex_table(df: pd.DataFrame, out_name: str, caption: str, label: str)
     path = cfg.path("outputs_dir") / f"{out_name}.tex"
     latex = df.to_latex(index=False, float_format="%.2f", caption=caption, label=label)
     latex = latex.replace("\\begin{table}", "\\begin{table}[h]\n\\centering", 1)
+    # Wrap the tabular in \resizebox so wide tables (many columns, long
+    # district/province names) shrink to the text width instead of running
+    # into the margin — needed once critical_gap_ranking started including
+    # Cusco's longer district names alongside Lambayeque's.
+    latex = latex.replace("\\begin{tabular}", "\\resizebox{\\textwidth}{!}{\\begin{tabular}", 1)
+    latex = latex.replace("\\end{tabular}", "\\end{tabular}}", 1)
     path.write_text(latex, encoding="utf-8")
 
 
