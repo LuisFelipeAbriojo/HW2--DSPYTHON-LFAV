@@ -20,39 +20,57 @@ Tres departamentos, uno por región geográfica, según lo exigido por el enunci
 
 ## Motor de ruteo
 
-**OSMnx + NetworkX**, sin Docker/OSRM. Justificación: la máquina de desarrollo no
-tiene Docker Desktop ni WSL2 instalados, y levantarlos exige reinicio del sistema y
-permisos de administrador. OSMnx + NetworkX es 100% Python, se instala con `pip`, y
-es viable computacionalmente para 3 departamentos dentro del límite de 5,000 puntos
-de demanda fijado más abajo. Todo resultado de ruteo se cachea en disco
-(`data/processed/routing_matrix_*.parquet`) para que una segunda corrida no
-recompute nada.
+**OSMnx (formato de grafo) + NetworkX (Dijkstra)**, sin Docker/OSRM. Justificación: la
+máquina de desarrollo no tiene Docker Desktop ni WSL2 instalados, y levantarlos exige
+reinicio del sistema y permisos de administrador. Es 100% Python, se instala con
+`pip`, y es viable computacionalmente para 3 departamentos dentro del límite de 5,000
+puntos de demanda fijado más abajo. Todo resultado de ruteo se cachea en disco
+(`data/processed/routing_matrix_*.parquet`, `data/cache/graphs/*.graphml`) para que
+una segunda corrida no recompute nada.
 
-**Construcción del grafo**: originalmente se planeaba construir los grafos
-directamente desde `data/raw/peru-latest.osm.pbf` (ya descargado) usando `pyrosm`,
-para evitar depender de Overpass API. Se descartó: `pyrosm` depende de `cykhash`,
-que no tiene wheel precompilado para Windows/Python 3.11 y requiere un compilador
-de C++ (Microsoft Visual C++ Build Tools) no instalado en esta máquina — instalarlo
-es un cambio de sistema pesado, igual que Docker/WSL2, así que se evita por la misma
-razón. En su lugar se usa `osmnx.graph_from_polygon()` directamente contra Overpass
-API (descarga en vivo, con caché en disco vía `ox.settings.cache_folder =
-"data/cache/osmnx"`, así que una segunda corrida no repite peticiones). El .pbf ya
-descargado queda documentado como fuente pero no se usa como input directo del
-grafo. Verificado el 2026-09-04: Lambayeque (grafo "drive") tardó ~5 minutos y
-produjo 44,020 nodos / 123,182 aristas tras simplificación y quedarse con la
-componente conexa más grande.
+**Construcción del grafo — historia real de tres intentos (documentada porque el
+enunciado pide justificar decisiones técnicas, no solo el resultado final):**
 
-Resiliencia ante fallos de Overpass: durante la corrida real del 2026-09-04, la
-instancia principal (overpass-api.de) dejó de responder a mitad de la Fase 2
-(reset de conexión / SSL EOF en todos los reintentos) mientras el resto de
-internet seguía accesible con normalidad, confirmando que era un problema del
-servidor y no de la red local. src/routing.py reintenta cada mirror con
-backoff (20s, 45s) y, si se agotan, hace failover al siguiente espejo público
-de la lista (overpass-api.de -> overpass.kumi.systems -> overpass.osm.ch),
-verificados accesibles ese mismo día. src/pipeline_phase2.py además envuelve
-cada bloque car/foot/bike en try/except: un fallo en un perfil no bota el
-resto de la corrida, y una segunda ejecución retoma desde lo que ya está
-cacheado en disco.
+1. **`pyrosm` desde el .pbf local** (intento original): descartado porque su
+   dependencia `cykhash` no tiene wheel precompilado para Windows/Python 3.11 y
+   exige un compilador de C++ (MSVC Build Tools) no instalado — el mismo tipo de
+   cambio de sistema pesado que Docker/WSL2.
+2. **`osmnx.graph_from_polygon()` contra Overpass API en vivo** (segundo intento):
+   funcionó para Lambayeque (~5 min, 44,020 nodos tras simplificar) pero falló
+   reiteradamente para Cusco/Loreto durante la sesión de cómputo del 2026-09-04 al
+   2026-09-05: la instancia principal (`overpass-api.de`) estuvo inalcanzable
+   (SSL EOF) durante más de una hora; el failover a `overpass.kumi.systems`
+   funcionó un rato pero luego también cayó; el failover a `overpass.osm.ch`
+   respondía HTTP 200 pero devolvía **resultados vacíos** para áreas con
+   carreteras reales confirmadas (verificado con una consulta de control cerca de
+   Quillabamba, Cusco: 0 vías encontradas) — un fallo silencioso más peligroso que
+   una caída limpia, porque no lanza excepción. Además, el tamaño de consulta por
+   defecto de OSMnx (2,500 km²) partió el polígono de Cusco (~72,000 km²) en 62
+   sub-consultas, cada una una oportunidad más de toparse con la inestabilidad del
+   servidor — casi 3 horas para un solo departamento sin terminar.
+3. **GDAL (driver `OSM`) sobre el .pbf local, vía `pyogrio`** (solución final): tanto
+   `fiona` como `pyogrio` ya traen GDAL empaquetado (sin compilador extra), y GDAL
+   incluye un driver nativo para `.osm.pbf`. `src/routing.py` lee la capa `lines`
+   filtrada por bbox + `highway IS NOT NULL`, aplica los mismos filtros de
+   categoría de vía que usa OSMnx internamente para `network_type='drive'`
+   (capturados literalmente de la URL de consulta que Overpass recibió en los
+   intentos anteriores) y filtros propios y documentados para `foot`/`bike`,
+   y arma el grafo de NetworkX manualmente (nodos = vértices únicos, aristas con
+   `length`/`travel_time`, sin simplificación topológica de OSMnx — ver
+   Limitaciones). 100% offline, sin ninguna dependencia de red en tiempo de
+   ejecución. Verificado el 2026-09-05: Lambayeque completo (lectura + filtrado +
+   construcción de grafo + guardado en caché) en 55 s — contra los ~5 min
+   (cuando funcionaba) o las horas (cuando no) del enfoque por Overpass — con
+   resultados de ruteo idénticos (1,833/1,834 puntos de demanda alcanzables en
+   auto, igual que con el grafo vía Overpass).
+
+**Diferencia con un grafo de OSMnx real**: al no aplicar la simplificación
+topológica de OSMnx (fusionar cadenas de nodos de grado 2 en una sola arista), el
+grafo construido aquí tiene muchos más nodos/aristas para la misma red vial
+(Lambayeque: 244,858 nodos aquí vs. 44,020 con OSMnx simplificado) — no afecta la
+corrección de las distancias/tiempos calculados, solo el tamaño en memoria y el
+tiempo de cómputo de Dijkstra (que sigue siendo de segundos por instalación, ver
+Fase 2).
 
 ---
 
