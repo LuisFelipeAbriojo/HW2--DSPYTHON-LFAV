@@ -14,7 +14,7 @@ import pandas as pd
 
 matplotlib.use("Agg")
 
-from src import metrics, optimization, routing
+from src import metrics, optimization, report_stats, routing
 from src.config import load_config
 from src.export import save_figure
 from src.logging_utils import get_logger
@@ -352,6 +352,9 @@ def run() -> None:
             caption="Recomendación de siting (MCLP voraz): establecimientos I-3/I-4 con mayor ganancia marginal de población cubierta si se elevan a resolutivos",
             label="tab:facility-siting",
         )
+
+    logger.info("Generando macros LaTeX con cifras actualizadas (report/generated_stats.tex)...")
+    report_stats.generate()
 
     logger.info("Fase 3 completa. Tablas escritas en %s", outputs_dir)
 

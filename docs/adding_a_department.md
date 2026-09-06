@@ -84,8 +84,42 @@ Este es el único paso manual. Se hace una sola vez por departamento.
 ```bash
 python -m src.pipeline_phase1   # minutos
 python -m src.pipeline_phase2   # ver nota de tiempos abajo
-python -m src.pipeline_phase3   # segundos
+python -m src.pipeline_phase3   # segundos -- también regenera report/generated_stats.tex
+python -m src.pipeline_phase5   # segundos -- compila report/main.pdf con las cifras nuevas
 ```
+
+`pipeline_phase3` ya llama a `src/report_stats.py` al final, así que las
+cifras que el reporte cita (Gini, cobertura, tiempos por departamento,
+factor de desvío, recomendaciones de siting, etc.) quedan actualizadas
+automáticamente en `report/generated_stats.tex` sin editar `main.tex` a
+mano. `pipeline_phase5` solo compila el PDF con esas cifras (ejecútalo
+solo si cambiaste algo de texto sin volver a correr `phase3`).
+
+**Lo que esto NO hace por ti** — y es deliberado, no una limitación a
+corregir: la prosa interpretativa de `report/main.tex` (qué departamento
+"sale mejor" y por qué, qué distrito se nombra en una oración de las
+Secciones 4, 6 y 8) sigue escrita a mano, referenciando los nombres de
+\statMeanAccess\texttt{NuevoDepartamento} etc. que `report_stats.py`
+genera para el nuevo departamento (el sufijo del macro es el nombre del
+departamento sin tildes ni espacios — ver el docstring de
+`_dept_key` en `src/report_stats.py`). Recalcular un número es aritmética;
+decidir qué contar sobre él es análisis, y por eso ese paso sigue siendo
+manual (o asistido por Claude) cada vez que cambian los departamentos en
+alcance.
+
+**Una trampa real que ya nos mordió una vez**: RENIPRESS trae su propio
+campo `district` (autorreportado por el establecimiento) que puede
+nombrar un distrito distinto al que realmente contiene sus coordenadas
+según el polígono de límites administrativos — son cosas relacionadas
+pero no intercambiables (ver la regla `district_containment` en
+Metodología, 13.1% de descalce en RENIPRESS). Al escribir sobre "el
+distrito con peor acceso", usa el nombre que sale del *join* geométrico
+(`\statWorstDistrictName`, calculado por polígono) y no el campo `district`
+de una tabla de establecimientos — confundir ambos fue exactamente el bug
+que esta automatización encontró y corrigió en el reporte de Lambayeque/
+Cusco/Loreto (el reporte original nombraba "Paucartambo" como el distrito
+peor ubicado; el distrito real, por polígono, es Kosñipata -- un distrito
+vecino, dentro de la misma provincia de Paucartambo).
 
 Si estás **reemplazando** uno de los 3 departamentos actuales (no
 agregando un cuarto), borra su caché para que no quede mezclada con

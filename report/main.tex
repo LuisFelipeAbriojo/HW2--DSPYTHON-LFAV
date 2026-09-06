@@ -17,6 +17,10 @@
 \date{\today}
 
 \begin{document}
+% Cifras generadas automáticamente por src/report_stats.py a partir de
+% data/outputs/ -- ver docs/adding_a_department.md para el alcance exacto
+% de qué se recalcula solo y qué sigue siendo un paso de redacción manual.
+\input{generated_stats.tex}
 \maketitle
 
 \begin{abstract}
@@ -26,23 +30,26 @@ Docker -- ver Metodología), el tiempo de acceso por carretera a un
 establecimiento de salud con capacidad resolutiva (categoría II-1 en
 adelante) para la población de tres departamentos peruanos -- Lambayeque
 (costa), Cusco (andino) y Loreto (amazónico) -- y compara ese acceso entre
-perfiles de auto, bicicleta y a pie sobre 5{,}000 puntos de demanda
-muestreados. El 78.4\% de la población en alcance accede en auto en 30
-minutos o menos a una instalación resolutiva, pero con una desigualdad
-marcada (Gini de acceso ponderado por población = 0.670) y una brecha
-urbano/rural de 2.5x (8.0 vs.\ 19.8 minutos). Cusco (15.4 min promedio
-ponderado) y Loreto (11.7 min) muestran, en promedio, mejor acceso que
-Lambayeque (18.0 min) -- una cifra que resulta engañosa sin el contexto
+perfiles de auto, bicicleta y a pie sobre \statNSampled\ puntos de demanda
+muestreados. El \statPctUnderFirstBand\% de la población en alcance accede
+en auto en \statFirstBandMinutes\ minutos o menos a una instalación
+resolutiva, pero con una desigualdad marcada (Gini de acceso ponderado por
+población = \statGini) y una brecha urbano/rural de \statUrbanRuralRatio x
+(\statUrbanMean\ vs.\ \statRuralMean\ minutos). Cusco (\statMeanAccessCusco\
+min promedio ponderado) y Loreto (\statMeanAccessLoreto\ min) muestran, en
+promedio, mejor acceso que Lambayeque (\statMeanAccessLambayeque\ min) --
+una cifra que resulta engañosa sin el contexto
 correcto: la muestra ponderada por población concentra los puntos de
 demanda donde la gente realmente vive, que en Loreto coincide con las
 pocas zonas conectadas por carretera, mientras la vasta mayoría del
 territorio amazónico -- sin caminos, con transporte fluvial -- queda fuera
-de lo que un análisis vial puede medir. Caminar toma, en mediana, 12.2
-veces más que ir en auto a la misma instalación resolutiva. El distrito
-peor ubicado, Paucartambo (Cusco), promedia 194.7 minutos ponderados. El
-32.4\% de los registros de RENIPRESS en los 3 departamentos carecen de
-coordenadas válidas, una limitación central del análisis discutida en
-detalle.
+de lo que un análisis vial puede medir. Caminar toma, en mediana,
+\statWalkCarRatio\ veces más que ir en auto a la misma instalación
+resolutiva. El distrito peor ubicado, \statWorstDistrictName\
+(\statWorstDistrictDept), promedia \statWorstDistrictMean\ minutos
+ponderados. El \statPctMissingCoords\% de los registros de RENIPRESS en
+los 3 departamentos carecen de coordenadas válidas, una limitación central
+del análisis discutida en detalle.
 \end{abstract}
 
 \tableofcontents
@@ -112,9 +119,12 @@ ejercicio.
 Un establecimiento es resolutivo si y solo si su estado operativo es
 \texttt{ACTIVO} y su categoría normalizada es II-1, II-2, II-E, III-1,
 III-2 o III-E. El campo \texttt{CATEGORIA} de RENIPRESS no es una cadena
-limpia: el 30.65\% de los 3{,}631 registros en los 3 departamentos de
-alcance llevan el valor literal \texttt{"0"} en vez de una categoría real
-(23.75\% a nivel nacional), y se normalizan a \texttt{SIN\_CATEGORIA} --
+limpia: el \statPctCategoryZero\% de los \statNFacilities\ registros en los 3
+departamentos de alcance llevan el valor literal \texttt{"0"} en vez de una
+categoría real (23.75\% a nivel nacional, medido una vez sobre el registro
+completo -- no recalculado por este pipeline, que solo procesa los
+departamentos en \texttt{config.md}), y se normalizan a
+\texttt{SIN\_CATEGORIA} --
 tratado como no resolutivo, nunca como capacidad asumida. La normalización
 usa una expresión regular tolerante a variantes de formato
 (\texttt{src/validation.py:normalize\_category}), no solo un mapeo de los
@@ -123,19 +133,20 @@ valores observados hoy.
 \subsection{Reglas de validación}
 
 Implementadas en \texttt{src/validation.py} y ejecutadas sobre los
-3{,}631 establecimientos y 21{,}095 centros poblados de los 3
-departamentos:
+\statNFacilities\ establecimientos y \statNCentrosPoblados\ centros
+poblados de los 3 departamentos:
 
 \begin{itemize}
-  \item \textbf{Coordenadas nulas o cero}: 32.36\% de RENIPRESS (0\% en
-  SIGMED). Se conservan en el registro pero se excluyen del cómputo
-  geoespacial.
+  \item \textbf{Coordenadas nulas o cero}: \statPctMissingCoords\% de
+  RENIPRESS (0\% en SIGMED). Se conservan en el registro pero se excluyen
+  del cómputo geoespacial.
   \item \textbf{Fuera del bbox de Perú}: 0 casos en ambas fuentes.
   \item \textbf{Lat/lon invertidos}: 0 casos detectados; la corrección
   automática solo se aplica cuando el intercambio mueve el punto
   \emph{dentro} del bbox de Perú, nunca a ciegas.
-  \item \textbf{Punto fuera de su distrito declarado}: 13.1\% de RENIPRESS
-  y 1.7\% de SIGMED (con coordenadas válidas) caen fuera del polígono de
+  \item \textbf{Punto fuera de su distrito declarado}: \statPctContainmentRenipress\%
+  de RENIPRESS y \statPctContainmentSigmed\% de SIGMED (con coordenadas
+  válidas) caen fuera del polígono de
   su propio \texttt{UBIGEO}, con tolerancia de 500\,m. Se conserva el
   registro con una advertencia -- no se puede saber si el error está en el
   ubigeo o en la coordenada sin revisión manual.
@@ -187,20 +198,22 @@ nodos/aristas por la misma red vial (Lambayeque: 244{,}858 nodos aquí vs.\
 distancias, solo el tiempo de cómputo de Dijkstra.
 
 Velocidades: auto usa la imputación por tipo de vía de OSMnx (con
-respaldo de 40\,km/h); bicicleta y a pie usan velocidades constantes de
-12 y 4.5\,km/h respectivamente (\texttt{config.md}).
+respaldo de \statSpeedCar\,km/h); bicicleta y a pie usan velocidades
+constantes de \statSpeedBike\ y \statSpeedFoot\,km/h respectivamente
+(\texttt{config.md}).
 
 La matriz completa origen\,$\times$\,instalación (auto) se calcula con
 \emph{un} Dijkstra de fuente única por instalación -- no un cálculo por
-par --, ya que el número de instalaciones (14--27 resolutivas por
-departamento) es muchísimo menor que el de puntos de demanda; esto da la
+par --, ya que el número de instalaciones (\statMinResolutivePerDept--\statMaxResolutivePerDept
+resolutivas por departamento) es muchísimo menor que el de puntos de demanda; esto da la
 matriz completa esencialmente gratis. La matriz también enruta a los
 candidatos I-3/I-4 (no solo a los ya-resolutivos), precisamente para que
 el simulador de escenarios de la Fase 4 pueda recalcular cobertura al
 ``elevar'' un candidato sin volver a rutear en vivo.
 
-Con 21{,}095 puntos de demanda en los 3 departamentos, por encima del
-tope de 5{,}000 fijado en \texttt{config.md}, se aplicó un muestreo
+Con \statNCentrosPoblados\ puntos de demanda en los 3 departamentos, por
+encima del tope de \statMaxDemandPoints\ fijado en \texttt{config.md}, se
+aplicó un muestreo
 estratificado por departamento y ponderado por población (no por conteo
 de puntos): cada departamento recibe una cuota proporcional a su
 población total estimada, y dentro de cada departamento el muestreo
@@ -226,8 +239,9 @@ que se indique lo contrario:
 \begin{itemize}
   \item \textbf{Tiempo de acceso} $t_{\min}(i)$: minutos en auto desde el
   punto $i$ a la instalación resolutiva más cercana.
-  \item \textbf{Bandas de cobertura}: \% de población en $\leq$30,
-  30--60, 60--120 y $>$120 minutos, más una banda de ``sin ruta''.
+  \item \textbf{Bandas de cobertura}: \% de población en $\leq$\statCoverageBandFirst,
+  \statCoverageBandFirst--\statCoverageBandSecond, \statCoverageBandSecond--\statCoverageBandThird\
+  y $>$\statCoverageBandThird\ minutos, más una banda de ``sin ruta''.
   \item \textbf{Acceso ponderado por población}, agregado por distrito,
   provincia y departamento.
   \item \textbf{Ranking de brechas críticas}: distritos peor ubicados por
@@ -237,8 +251,8 @@ que se indique lo contrario:
   acotado en [0,1], ser estándar en la literatura de acceso a salud, y ser
   comparable entre departamentos de tamaño y tiempo medio muy distintos.
   \item \textbf{Contraste urbano/rural}: un punto es urbano si su
-  población estimada supera 2{,}000 habitantes o si es alguna capital
-  (\texttt{config.md}).
+  población estimada supera \statUrbanPopThreshold\ habitantes o si es
+  alguna capital (\texttt{config.md}).
   \item \textbf{Cruce con ruralidad distrital}: de las dimensiones
   sugeridas por el enunciado (pobreza, ruralidad, población bajo 5,
   altitud), se usó ruralidad por ser la única calculable directamente de
@@ -256,9 +270,10 @@ Los tres departamentos muestran patrones de cobertura muy distintos pese a
 tener un acceso ponderado promedio relativamente similar (Cuadro 2): Cusco
 y Loreto no tienen ningún punto de demanda muestreado sin ruta
 (\texttt{\% sin ruta} = 0), mientras Lambayeque tiene una fracción pequeña
-pero no nula (0.05\%). El resultado más llamativo es que Loreto -- el
-departamento con la red vial más pequeña y más fragmentada de los tres --
-exhibe el \emph{mejor} tiempo promedio ponderado (11.7 min). Esto no
+pero no nula (\statPctUnroutableLambayeque\%). El resultado más llamativo
+es que Loreto -- el departamento con la red vial más pequeña y más
+fragmentada de los tres -- exhibe el \emph{mejor} tiempo promedio
+ponderado (\statMeanAccessLoreto\ min). Esto no
 significa que Loreto tenga mejor infraestructura vial: el muestreo
 ponderado por población concentra los puntos de demanda donde vive la
 gente, y en Loreto eso coincide casi exactamente con las pocas zonas
@@ -287,24 +302,27 @@ departamento.}
 \centering
 \includegraphics[width=0.6\textwidth]{figures/fig_lorenz_curve.pdf}
 \caption{Curva de Lorenz del tiempo de acceso ponderado por población
-(Gini = 0.670), los 3 departamentos combinados.}
+(Gini = \statGini), los 3 departamentos combinados.}
 \end{figure}
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.6\textwidth]{figures/fig_urban_rural_contrast.pdf}
-\caption{Tiempo de acceso ponderado: urbano (8.0 min) vs.\ rural (19.8
-min), los 3 departamentos combinados.}
+\caption{Tiempo de acceso ponderado: urbano (\statUrbanMean\ min) vs.\
+rural (\statRuralMean\ min), los 3 departamentos combinados.}
 \end{figure}
 
 \subsection{Brechas críticas}
 
 \input{../data/outputs/table_critical_gaps.tex}
 
-Contrario a lo que el promedio departamental sugeriría, 3 de los 5
-distritos con peor acceso ponderado son de \textbf{Cusco}
-(Paucartambo, 194.7 min; Quispicanchi, 177.1 y 141.9 min en dos de sus
-distritos), no de Lambayeque. El buen promedio de Cusco (15.4 min)
+Contrario a lo que el promedio departamental sugeriría,
+\statTopGapsDeptModeCount\ de los \statTopGapsN\ distritos con peor acceso
+ponderado son de \textbf{\statTopGapsDeptMode}
+(\statTopGapsModeFirstDist, \statTopGapsModeFirstTime\ min;
+\statTopGapsModeSecondDist, \statTopGapsModeSecondTime\ min;
+\statTopGapsModeThirdDist, \statTopGapsModeThirdTime\ min), no de Lambayeque. El
+buen promedio de Cusco (\statMeanAccessCusco\ min)
 convive con una cola de distritos rurales andinos extremadamente aislados
 -- exactamente el patrón de alta desigualdad (Gini) que un promedio simple
 esconde, y la razón por la que el enunciado exige ponderar por población y
@@ -312,16 +330,19 @@ reportar la distribución completa, no solo la media.
 
 \subsection{Comparación entre perfiles de desplazamiento}
 
-Para los 5{,}000 puntos de demanda muestreados, el 99.96\% (4{,}998) tiene
-ruta alcanzable tanto en auto como a pie hacia la instalación resolutiva
-más cercana. La razón mediana entre tiempo a pie y tiempo en auto es
-\textbf{12.2x}, notablemente estable entre departamentos pese a sus
-diferencias de relieve: 13.0x en Lambayeque, 11.3x en Cusco, 10.8x en
-Loreto (\texttt{data/outputs/cross\_mode\_comparison.csv}). Esto contradice
+Para los \statNSampled\ puntos de demanda muestreados, el
+\statPctBothRoutable\% (\statNBothRoutable) tiene ruta alcanzable tanto en
+auto como a pie hacia la instalación resolutiva más cercana. La razón
+mediana entre tiempo a pie y tiempo en auto es \textbf{\statWalkCarRatio x},
+notablemente estable entre departamentos pese a sus diferencias de
+relieve: \statWalkCarRatioLambayeque x en Lambayeque, \statWalkCarRatioCusco x
+en Cusco, \statWalkCarRatioLoreto x en Loreto
+(\texttt{data/outputs/cross\_mode\_comparison.csv}). Esto contradice
 la expectativa inicial de que el terreno andino de Cusco produciría el
 mayor castigo relativo al caminar -- en la práctica, la razón está
-dominada por la diferencia de velocidad asumida (40\,km/h auto vs.\
-4.5\,km/h a pie, un factor de $\approx$8.9x) más el efecto de que a pie se
+dominada por la diferencia de velocidad asumida (\statSpeedCar\,km/h auto
+vs.\ \statSpeedFoot\,km/h a pie, un factor de $\approx$\statSpeedRatioCarFoot x)
+más el efecto de que a pie se
 puede usar una red más densa de sendas y caminos que el auto no puede
 recorrer, lo que compensa parcialmente el relieve. En términos prácticos:
 una instalación resolutiva a 25 minutos en auto puede estar a más de 5
@@ -335,12 +356,13 @@ ruteada y distancia en línea recta (Haversine) al mismo destino
 contraste geográfico que motiva este proyecto:
 
 \begin{itemize}
-  \item \textbf{Lambayeque} (costa, terreno plano): mediana 1.18x.
-  \item \textbf{Cusco} (sierra, relieve fuerte): mediana \textbf{1.61x} --
-  36\% más desvío que la costa, consistente con carreteras que serpentean
-  valles y quebradas en vez de ir directo al destino.
+  \item \textbf{Lambayeque} (costa, terreno plano): mediana \statDetourLambayeque x.
+  \item \textbf{Cusco} (sierra, relieve fuerte): mediana \textbf{\statDetourCusco x} --
+  \statDetourAndeanVsCoastalPct\% más desvío que la costa, consistente con
+  carreteras que serpentean valles y quebradas en vez de ir directo al
+  destino.
   \item \textbf{Loreto} (selva, red fragmentada): el cálculo directo da
-  una mediana de 0.014x, un valor \emph{matemáticamente imposible} para
+  una mediana de \statDetourLoreto x, un valor \emph{matemáticamente imposible} para
   ruteo real (la distancia por red nunca puede ser menor que la línea
   recta). Esto no es un hallazgo geográfico sino una alerta metodológica
   real, discutida en Limitaciones: las distancias de \emph{snapping} en
@@ -378,19 +400,24 @@ objetivos de cobertura submodulares como este.
 \input{../data/outputs/table_facility_siting.tex}
 
 El resultado conecta directamente con las brechas críticas de la Sección
-4.2: en Cusco, la primera recomendación es el propio establecimiento de
-\textbf{Paucartambo} -- el distrito con peor acceso de todo el estudio --,
-y en Lambayeque, un solo establecimiento (CALIDAD Y SALUD, Olmos)
-agregaría más de 42{,}000 personas cubiertas, casi tanto como los otros
-cuatro candidatos recomendados juntos. Esto convierte el hallazgo
-cualitativo ("hay que priorizar I-3/I-4 sobre construir desde cero") en
-una lista accionable y ordenada por impacto, no solo una intuición.
+4.2: en Cusco, la primera recomendación es el establecimiento
+\textbf{\statSitingTopNameCusco} del distrito de
+\statSitingTopDistrictCusco\ -- en la misma provincia que
+\statWorstDistrictName, el distrito con peor acceso de todo el estudio --,
+y en Lambayeque, un solo establecimiento (\statSitingTopNameLambayeque,
+\statSitingTopDistrictLambayeque) agregaría más de \statSitingTopGainLambayeque\
+personas cubiertas, casi tanto como los otros cuatro candidatos
+recomendados juntos (\statSitingRestGainLambayeque\ personas en conjunto).
+Esto convierte el hallazgo cualitativo (``hay que priorizar I-3/I-4 sobre
+construir desde cero'') en una lista accionable y ordenada por impacto, no
+solo una intuición.
 
 \section{Limitaciones}
 
 \begin{itemize}
-  \item \textbf{Cobertura de coordenadas}: 32.4\% de los establecimientos
-  de RENIPRESS en los 3 departamentos (36.6\% a nivel nacional) no tienen
+  \item \textbf{Cobertura de coordenadas}: \statPctMissingCoords\% de los
+  establecimientos de RENIPRESS en los 3 departamentos (36.6\% a nivel
+  nacional, medido una vez sobre el registro completo) no tienen
   coordenadas utilizables y quedan fuera del cómputo geoespacial -- el
   panorama real de oferta de salud es, en el peor caso, más denso de lo
   que este análisis puede ver.
@@ -399,8 +426,8 @@ una lista accionable y ordenada por impacto, no solo una intuición.
   la distancia de red (entre nodos snapeados) y la distancia en línea
   recta (entre coordenadas originales) dejen de ser comparables, dando un
   resultado matemáticamente imposible (Discusión). El diagnóstico correcto
-  no es "el pipeline tiene un bug" sino "la red vial de Loreto es
-  demasiado fragmentada para que esta métrica tenga sentido ahí" -- en sí
+  no es ``el pipeline tiene un bug'' sino ``la red vial de Loreto es
+  demasiado fragmentada para que esta métrica tenga sentido ahí'' -- en sí
   mismo, un hallazgo sobre el terreno, no sobre el código.
   \item \textbf{Un establecimiento listado no implica uno operativo}:
   RENIPRESS es un registro administrativo; no confirma personal,
@@ -421,8 +448,9 @@ una lista accionable y ordenada por impacto, no solo una intuición.
   causa de que Loreto aparezca con buen acceso promedio (Resultados):
   concentra la muestra donde vive la gente, que coincide con las zonas
   conectadas -- no mide la accesibilidad del departamento como un todo.
-  \item \textbf{Muestreo de puntos de demanda}: con 21{,}095 puntos de
-  demanda frente a un tope de 5{,}000, se aplicó muestreo estratificado
+  \item \textbf{Muestreo de puntos de demanda}: con \statNCentrosPoblados\
+  puntos de demanda frente a un tope de \statMaxDemandPoints, se aplicó
+  muestreo estratificado
   ponderado por población, lo que introduce error de muestreo respecto al
   universo completo, mayor cuanto más pequeño y disperso es el conjunto de
   un departamento.
@@ -448,12 +476,16 @@ una lista accionable y ordenada por impacto, no solo una intuición.
 
 El hallazgo central de este análisis no es un número único sino un
 contraste: el acceso a salud resolutiva en los 3 departamentos es
-marcadamente desigual (Gini = 0.670) y esa desigualdad tiene una geografía
-distinta en cada uno. En \textbf{Lambayeque}, el problema es la brecha
-urbano/rural clásica dentro de un territorio bien conectado. En
-\textbf{Cusco}, pese a tener el mejor promedio ponderado de los tres
-(15.4 min), esconde los distritos individuales más extremos de todo el
-estudio (Paucartambo, 194.7 min) -- el relieve andino golpea a bolsones
+marcadamente desigual (Gini = \statGini) y esa desigualdad tiene una
+geografía distinta en cada uno. En \textbf{Lambayeque}, el problema es la
+brecha urbano/rural clásica dentro de un territorio bien conectado. En
+\textbf{Cusco}, pese a un promedio ponderado saludable
+(\statMeanAccessCusco\ min, mejor que \statWorstAvgDept\ aunque no el
+mejor de los tres -- ese es \statBestAvgDept, por las razones de muestreo
+explicadas en Resultados, no por mejor infraestructura), esconde los
+distritos individuales más extremos de todo el estudio
+(\statWorstDistrictName, \statWorstDistrictMean\ min) -- el relieve andino
+golpea a bolsones
 rurales específicos, no al departamento entero. En \textbf{Loreto}, la
 pregunta de acceso vial pierde sentido para la mayoría del territorio: no
 es que el acceso sea lento, es que la red vial simplemente no llega, y el

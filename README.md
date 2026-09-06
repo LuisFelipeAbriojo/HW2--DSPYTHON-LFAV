@@ -35,7 +35,8 @@ Censo 2017, ya que INEI la publica solo en PDF) está documentado en
   establecimientos, distribución, ranking, simulador de escenarios, panel
   de calidad de datos)
 - [x] Fase 5 — Reporte en LaTeX (`report/main.tex` + `report/main.pdf`, 11
-  páginas)
+  páginas), con cifras y compilación automatizadas (`python -m
+  src.pipeline_phase5`) — ver "Regenerar el reporte" más abajo
 - [ ] Video de presentación (a cargo del estudiante, ver enunciado)
 
 ## Estructura del repositorio
@@ -50,7 +51,10 @@ Censo 2017, ya que INEI la publica solo en PDF) está documentado en
 │   ├── validation.py        # Fase 1 — reglas de calidad de datos
 │   ├── routing.py           # Fase 2 — motor de ruteo (OSMnx + NetworkX) + caché
 │   ├── metrics.py           # Fase 3 — métricas de acceso
-│   └── export.py            # tablas/figuras para el reporte y el dashboard
+│   ├── optimization.py      # Innovación — siting de facilities (MCLP voraz)
+│   ├── export.py            # tablas/figuras para el reporte y el dashboard
+│   ├── report_stats.py      # Fase 5 — macros LaTeX con cifras recalculadas
+│   └── pipeline_phase5.py   # Fase 5 — orquesta report_stats + compila el PDF
 ├── data/
 │   ├── raw/                 # descargas crudas (no versionadas, ver .gitignore)
 │   ├── processed/           # GeoParquet/GeoPackage limpios + matrices de ruteo
@@ -94,9 +98,35 @@ pytest
 streamlit run app.py
 ```
 
+## Regenerar el reporte
+
 Para recompilar el reporte (Fase 5) hace falta una distribución de LaTeX
 (este proyecto usa [MiKTeX](https://miktex.org/), instalado con
-`winget install MiKTeX.MiKTeX`, sin necesidad de permisos de administrador):
+`winget install MiKTeX.MiKTeX`, sin necesidad de permisos de administrador).
+
+```bash
+# Recalcula report/generated_stats.tex (macros LaTeX con las cifras que
+# cita el texto -- Gini, cobertura, tiempos por departamento, etc.) desde
+# lo último que haya en data/outputs/, y compila main.pdf (2 pasadas,
+# validando main.log en vez de solo el código de salida).
+python -m src.pipeline_phase5
+```
+
+Esto es lo que hace que "cambió la data" (una fuente actualizada, u otros
+departamentos en `config.md`) se traduzca en un PDF actualizado sin copiar
+números a mano: `src/report_stats.py` computa cada cifra citada en el
+texto directamente desde `data/outputs/*.csv`, así que solo hace falta
+correr `python -m src.pipeline_phase3` (que ya llama a `report_stats`
+automáticamente al final) y luego `pipeline_phase5` para compilar. **Lo
+que esto NO automatiza** es la prosa interpretativa (qué departamento
+"sale mejor" y por qué, qué distrito se nombra en una oración) -- eso es
+redacción de análisis, no aritmética, y sigue siendo un paso manual (o
+asistido por Claude) al cambiar de departamentos. Ver
+[docs/adding_a_department.md](docs/adding_a_department.md) para el
+alcance exacto.
+
+Para compilar a mano sin recalcular nada (por ejemplo, tras un cambio de
+texto que no toca ninguna cifra):
 
 ```bash
 cd report
