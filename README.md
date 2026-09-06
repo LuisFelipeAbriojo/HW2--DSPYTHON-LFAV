@@ -1,6 +1,6 @@
 # Golden Hour — Acceso vial a salud resolutiva en Perú
 
-Proyecto integrador (Ciencia de Datos, 2026-II): estimar cuánto tarda, por
+Proyecto integrador (Data Science con Python, 2026-II): estimar cuánto tarda, por
 carretera, la población de tres departamentos peruanos en llegar a un
 establecimiento de salud con capacidad resolutiva (categoría II-1 en
 adelante), e identificar dónde están las peores brechas de acceso.
