@@ -67,38 +67,50 @@ Censo 2017, ya que INEI la publica solo en PDF) está documentado en
 └── tests/
 ```
 
-## Instalación
+## Puesta en marcha (máquina limpia)
 
-Requiere Python 3.11+.
+**Requiere Python 3.11 o 3.12.** Python 3.14 **no** sirve: `fiona` no tiene
+wheel para 3.14 y falla al compilar (necesita GDAL). Si no lo tienes:
+`winget install Python.Python.3.12`.
+
+### Opción rápida — un solo comando (Windows / PowerShell)
+
+```powershell
+git clone https://github.com/LuisFelipeAbriojo/HW2--DSPYTHON-LFAV.git
+cd HW2--DSPYTHON-LFAV
+.\run.ps1
+```
+
+`run.ps1` crea el venv, instala dependencias, corre los tests, regenera las
+métricas/tablas/figuras (Fase 3) y abre el dashboard. **No descarga nada**:
+`data/processed/` (incluida la matriz de ruteo de la Fase 2) y `data/outputs/`
+están versionados. Flags: `.\run.ps1 -Pipeline` corre además las Fases 1 y 2
+desde cero (descarga ~256 MB, ~2 h); `.\run.ps1 -NoDashboard` omite Streamlit.
+
+### Opción manual (cualquier SO)
 
 ```bash
-python -m venv .venv
-.venv\Scripts\activate
+py -3.12 -m venv .venv           # o: python3.12 -m venv .venv
+.venv\Scripts\activate           # Windows  ·  source .venv/bin/activate en Linux/Mac
 pip install -r requirements.txt
+
+pytest                           # 41 tests
+python -m src.pipeline_phase3    # métricas + tablas + figuras (segundos, lee data/processed/)
+streamlit run app.py             # dashboard en http://localhost:8501
 ```
 
-## Ejecución
+### Pipeline completo desde cero (opcional)
+
+Solo si quieres reconstruir todo en vez de usar los archivos versionados. Las
+Fases 1–2 tardan y descargan; el resultado es idéntico al ya commiteado.
 
 ```bash
-# Fase 1 — descarga (idempotente) + validación + GeoParquet en data/processed/
-python -m src.pipeline_phase1
-
-# Fase 2 — ruteo (auto/bici/a pie, 3 departamentos). Tarda ~1h50 la primera
-# vez (grafos de Cusco/Loreto son grandes); las corridas siguientes son
-# instantáneas gracias al caché en data/cache/graphs/ y data/processed/.
-python -m src.pipeline_phase2
-
-# Fase 3 — métricas + tablas/figuras para el reporte
-python -m src.pipeline_phase3
-
-# Tests
-pytest
-
-# Dashboard (lee únicamente los archivos precomputados de arriba)
-streamlit run app.py
+python -m src.pipeline_phase1    # descarga (idempotente) RENIPRESS/SIGMED/OSM/límites + validación
+python -m src.pipeline_phase2    # ruteo auto/bici/a pie — ~1h50 la 1ª vez, luego instantáneo (caché en data/cache/)
+python -m src.pipeline_phase3    # métricas
 ```
 
-## Regenerar el reporte
+## Regenerar el reporte (Fase 5)
 
 Para recompilar el reporte (Fase 5) hace falta una distribución de LaTeX
 (este proyecto usa [MiKTeX](https://miktex.org/), instalado con
