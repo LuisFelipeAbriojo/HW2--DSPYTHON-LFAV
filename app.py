@@ -104,6 +104,12 @@ except FileNotFoundError:
 departments_ready = sorted(access_by_district.merge(
     districts[["IDDIST", "NOMBDEP"]], left_on="ubigeo", right_on="IDDIST", how="left"
 )["NOMBDEP"].dropna().unique())
+# NOMBDEP comes from the boundaries file in UPPERCASE ("CUSCO"); config.md's
+# department_names are Title Case ("Cusco"). Compare case-insensitively --
+# a literal set difference here is non-empty for every department, always,
+# and used to show a stale "Fase 2 en curso" caption even once every
+# department was long done.
+departments_ready_upper = {d.upper() for d in departments_ready}
 
 # ----------------------------------------------------------------- sidebar --
 
@@ -111,7 +117,7 @@ st.sidebar.header("Filtros")
 selected_depts = st.sidebar.multiselect("Departamento", cfg.department_names, default=cfg.department_names)
 if not departments_ready:
     st.sidebar.warning("Ningún departamento tiene resultados de la Fase 3 todavía.")
-elif set(selected_depts) - set(departments_ready):
+elif {d.upper() for d in selected_depts} - departments_ready_upper:
     st.sidebar.caption(f"Con datos listos: {', '.join(departments_ready)}. El resto se completará al terminar la Fase 2.")
 
 provinces_available = sorted(facilities.loc[facilities["department"].str.title().isin(selected_depts), "province"].dropna().unique())
@@ -291,7 +297,7 @@ st.caption(
 )
 
 upgradeable_cats = cfg.dashboard["simulator_upgradeable_categories"]
-sim_department = st.selectbox("Departamento para simular", [d for d in selected_depts if d in departments_ready] or selected_depts)
+sim_department = st.selectbox("Departamento para simular", [d for d in selected_depts if d.upper() in departments_ready_upper] or selected_depts)
 candidates = facilities[
     (facilities["department"].str.upper() == sim_department.upper())
     & facilities["category"].isin(upgradeable_cats)

@@ -276,6 +276,14 @@ def generate() -> None:
             lines.append(_macro(f"statSitingTopGain{key}", _fmt_int(top["marginal_population_gained"])))
             rest_gain = sub.iloc[1:]["marginal_population_gained"].sum()
             lines.append(_macro(f"statSitingRestGain{key}", _fmt_int(rest_gain)))
+            if rest_gain > 0:
+                # NOT the same thing as "casi tanto como" (roughly equal to) --
+                # a previous hand-written draft claimed that, but the top
+                # pick is usually well above the other picks combined, not
+                # merely comparable to them. Report the ratio, not a fixed
+                # form of words, so the sentence stays accurate regardless
+                # of which department/facilities this ends up describing.
+                lines.append(_macro(f"statSitingTopVsRestRatio{key}", _fmt(top["marginal_population_gained"] / rest_gain, 1)))
 
     # --- Phase 1 data-quality figures (3-department scope only) ------------
     dq_path = out_dir / "data_quality_report.csv"

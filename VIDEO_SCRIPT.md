@@ -109,29 +109,26 @@ los resolutivos.**
 arreglado" si el video pide esa sección aparte — encontrado probando la
 app de verdad, no leyendo el código.)*
 
-**Decisión 4 (bonus, corta) — Por qué automaticé la generación del reporte,
-y qué encontré al hacerlo.**
+**Decisión 4 (bonus, una sola frase — ver nota de tiempos abajo) — Por qué
+automaticé la generación del reporte.**
 
-> "Un profesor me preguntó algo razonable: ¿qué pasa si cambio los
-> departamentos, o llega data nueva? ¿Tengo que reescribir el reporte a
-> mano? La respuesta parcial es sí, pero solo la parte de interpretación.
-> Construí una Fase 5 que recalcula automáticamente cada cifra que el
-> reporte cita — el Gini, los tiempos por departamento, el factor de
-> desvío, las recomendaciones de siting — como macros de LaTeX generadas
-> desde los datos, y recompila el PDF con un solo comando."
+Con las Decisiones 1-3 ya llenas las 2 minutos del bloque (ver "Chequeo de
+tiempos" al final del documento) — usa la versión corta, no la larga:
 
-> "Y al construir esa automatización encontré un error real en mi propio
-> reporte: yo había escrito a mano que el distrito con peor acceso era
-> 'Paucartambo'. Pero RENIPRESS autorreporta el distrito de un
-> establecimiento — un campo de texto, no necesariamente el polígono real
-> — y el distrito verdadero, por geometría, es Kosñipata, un distrito
-> vecino dentro de la misma provincia. Mi propia automatización encontró
-> un bug en mi propia redacción. Lo corregí y lo documenté."
+> "Un profesor me preguntó algo razonable: ¿qué pasa si cambian los
+> departamentos o llega data nueva? Construí una Fase 5 que recalcula
+> automáticamente cada cifra del reporte desde los datos y recompila el
+> PDF con un comando — y al construirla, encontró y corrigió un error
+> real en mi propia redacción sobre cuál era el distrito peor ubicado."
 
-*(Si vas corto de tiempo, esta es la decisión más fácil de recortar a una
-sola frase — pero es una buena forma de cerrar la sección de metodología
-mostrando que la rigurosidad no fue solo del código, sino también de cómo
-verificas lo que escribes sobre él.)*
+*Versión larga (NO la leas en el video salvo que te sobre tiempo en otra
+sección — son ~155 palabras, ~1 minuto, y no hay presupuesto para eso
+aquí): cuenta que habías escrito a mano "Paucartambo" como el distrito
+con peor acceso, pero RENIPRESS autorreporta el distrito de un
+establecimiento (un campo de texto) que no es lo mismo que el distrito
+real por polígono — el verdadero es Kosñipata, un distrito vecino dentro
+de la misma provincia — y que tu propia automatización encontró ese bug
+en tu propia redacción, no en tu código.*
 
 ---
 
@@ -144,25 +141,38 @@ orden:
    distrito, mediana de acceso. Cambia el umbral en la barra lateral y
    muestra que los KPIs se actualizan.
 2. **Mapa coroplético**: filtra a un solo departamento (ej. Cusco) y
-   señala visualmente los distritos rojos (Paucartambo, Quispicanchi).
+   señala visualmente los distritos rojos — Kosñipata, Camanti y Marcapata,
+   en las provincias de Paucartambo y Quispicanchi respectivamente.
 3. **Capa de establecimientos**: activa/desactiva resolutivos vs. no
    resolutivos, filtra por categoría o institución.
 4. **Distribución**: cambia entre "Departamento" y "Urbano/Rural" en el
    histograma — señala la brecha urbano/rural (8.0 vs. 19.8 min).
 5. **Ranking de distritos** + botón de descarga CSV.
-6. **Simulador de escenarios**: selecciona Cusco, elige un candidato I-3/I-4
-   real (ideal: uno de Paucartambo o Quispicanchi) y muestra la ganancia
-   marginal en vivo.
-7. **Innovación — recomendación de ubicación (MCLP)**: esta es tu cierre
-   de la demo. Muestra la tabla y el gráfico de barras, y di:
+6. **Simulador de escenarios**: selecciona Cusco, busca y elige
+   **PILCOPATA (I-3, Kosñipata)** — el establecimiento del distrito con
+   peor acceso de todo el estudio, la elección "obvia". El panel muestra
+   población cubierta actual 541,425 → con el escenario 541,621:
+   **ganancia marginal de solo 196 personas.** No lo escondas ni pases
+   rápido por ese número — es el gancho para el siguiente paso.
 
-   > "En vez de que yo elija a mano qué establecimiento simular, este
-   > algoritmo recorre TODOS los candidatos y los ordena por impacto. Miren
-   > esto: en Cusco, la recomendación número uno es el establecimiento
-   > **Paucartambo**, en la misma provincia que Kosñipata — el distrito con
-   > peor acceso de todo el estudio. Y en Lambayeque, un solo
-   > establecimiento en Olmos agregaría más de 42 mil personas cubiertas —
-   > casi tanto como los otros cuatro candidatos recomendados juntos."
+   > "La elección obvia sería elevar el establecimiento del distrito con
+   > peor tiempo de acceso, Kosñipata. Pero miren: la ganancia real es de
+   > apenas 196 personas — porque Kosñipata, aunque tiene el peor tiempo
+   > individual, tiene muy poca población. El peor *tiempo* no es lo mismo
+   > que el mayor *impacto*."
+
+7. **Innovación — recomendación de ubicación (MCLP)**: esta es tu cierre
+   de la demo, y responde directamente a lo que acabas de mostrar. Muestra
+   la tabla y el gráfico de barras, y di:
+
+   > "Por eso construí esto: en vez de que yo elija a mano y adivine, un
+   > algoritmo voraz recorre TODOS los candidatos y los ordena por impacto
+   > real, no por intuición. En Cusco, la recomendación número uno no es
+   > Pilcopata — es el establecimiento **Paucartambo**, en la misma
+   > provincia, con una ganancia de 4,608 personas: 23 veces más que la
+   > elección obvia. Y en Lambayeque, un solo establecimiento en Olmos
+   > agregaría más de 42 mil personas cubiertas — casi el doble de lo que
+   > suman los otros cuatro candidatos recomendados juntos."
 
 8. **Panel de calidad de datos** (cierre de la demo, transición a
    hallazgos): vuelve a mostrar brevemente el reporte de la Fase 1.
@@ -176,10 +186,10 @@ Con números reales, no solo texto:
 > "Con los 3 departamentos: 78.4% de la población llega en 30 minutos o
 > menos, pero con un Gini de acceso de 0.669 — muy desigual. Cusco tiene un
 > promedio saludable (15.4 min, mejor que Lambayeque aunque no el mejor de
-> los tres — ese es Loreto, por una razón de muestreo que explico en
-> Limitaciones, no por mejor infraestructura) pero también el peor
-> distrito individual de todo el estudio: Kosñipata, casi 195 minutos.
-> Caminar toma, en mediana, **12 veces más** que ir en auto —
+> los tres — ese es Loreto con 11.7 min, por una razón de muestreo que
+> explico en Limitaciones, no por mejor infraestructura) pero también el
+> peor distrito individual de todo el estudio: Kosñipata, casi 195
+> minutos. Caminar toma, en mediana, **12.2 veces más** que ir en auto —
 > sorprendentemente parecido entre los tres departamentos, algo que no
 > esperaba."
 
@@ -221,6 +231,40 @@ corrió un script. Elige 3-4:
 
 ---
 
+## Chequeo de tiempos (antes de grabar)
+
+Conteo de palabras de todo lo que va entre comillas (lo que realmente se
+dice en voz alta), a ritmo conservador de presentación (130 palabras/min
+— más lento que una conversación normal, a propósito, porque grabando
+uno tiende a ir más lento que leyendo en silencio):
+
+| Sección | Presupuesto | Texto guionado | Estimado a 130 ppm |
+|---|---|---|---|
+| 0:00–0:45 Problema | 45 s | 72 palabras | ~33 s — sobra tiempo para señalar la pantalla |
+| 0:45–2:15 Datos | 90 s | 91 palabras | ~42 s — sobra bastante, úsalo para dejar que los números se asienten |
+| 2:15–4:00 Método | 105 s | 85 palabras | ~39 s — igual, sobra tiempo |
+| 4:00–6:00 Decisiones | 120 s | 277 palabras (con la Decisión 4 en versión corta) | ~128 s — ajustado, prácticamente al límite |
+| 6:00–9:30 Demo | 210 s | 213 palabras guionadas | ~98 s de texto + ~112 s de clicks/espera reales — sobra margen |
+| 9:30–10:45 Hallazgos | 75 s | 142 palabras | ~66 s |
+| 10:45–11:45 Limitaciones | 60 s | 63 palabras (notas, no oraciones completas) | elabóralas, no las leas tal cual |
+| 11:45–12:00 Cierre | 15 s | 40 palabras | ~19 s — ligeramente ajustado |
+
+**La única sección realmente en riesgo es "4:00–6:00 Decisiones"** — por
+eso la Decisión 4 quedó como una sola frase corta por defecto, con la
+versión larga marcada explícitamente como "no la leas" salvo que te sobre
+tiempo en otra parte. Con eso, las 4 decisiones caben en ~2 minutos
+hablando a ritmo normal. Si de todos modos se te va el tiempo ahí, el
+orden de recorte es: (1) recorta Decisión 4 a cero — ni la frase corta,
+(2) acorta Decisión 2 (población) a una sola oración, (3) nunca recortes
+Decisión 1 (Overpass) ni Decisión 3 (I-3/I-4) — son las que responden
+directamente al criterio de "defensa de metodología".
+
+Las demás secciones tienen margen de sobra (sobre todo Datos y Método) —
+si notas que te faltan segundos en Decisiones, puedes literalmente hablar
+un poco más lento en Datos/Método sin que el video se pase de 12 minutos.
+
+---
+
 ## Notas prácticas para grabar
 
 - El dashboard debe estar corriendo ANTES de empezar a grabar
@@ -229,10 +273,18 @@ corrió un script. Elige 3-4:
   en pestañas listas para alternar.
 - Practica la transición 6:00→9:30 (la demo) al menos una vez cronometrada
   — es la sección más larga y la que más fácil se te va de tiempo.
-- La Decisión 4 (Fase 5 / reporte automatizado) es la más nueva y la más
-  fácil de recortar a una sola frase si el bloque de metodología
-  (4:00-6:00) se te está yendo de los 2 minutos — no hace falta
-  demostrarla en vivo, es solo una anécdota hablada.
-- Si te quedas corto de tiempo en algún lado, recorta la sección de
-  hallazgos (9:30-10:45) antes que Limitaciones o la Demo — son las que
-  más puntos valen.
+- El selector de establecimientos del simulador es un multiselect que
+  filtra mientras escribes: haz clic en el campo, escribe "PILCOPATA" y
+  selecciona la única opción que aparece ("PILCOPATA (I-3, KOSÑIPATA)").
+  **No hagas doble clic ni cliquees cerca después de seleccionar** — el
+  dropdown queda abierto y un clic de más agrega establecimientos que no
+  quieres (me pasó probándolo). Si se llena de chips de más, recarga la
+  página (F5) y empieza de nuevo — es más rápido que sacarlos uno a uno.
+  Practica esta selección un par de veces antes de grabar.
+- Si te quedas corto de tiempo en algún lado, recorta primero la
+  Decisión 4 completa (ver "Chequeo de tiempos"), luego la sección de
+  hallazgos (9:30-10:45) — Limitaciones y la Demo son las que más puntos
+  valen y no deberían recortarse.
+- Corre `python -m src.pipeline_phase5` una vez antes de grabar si tocaste
+  cualquier número del reporte, para que `report/main.pdf` (la pestaña
+  que vas a mostrar) tenga las cifras más recientes.
