@@ -109,6 +109,30 @@ los resolutivos.**
 arreglado" si el video pide esa sección aparte — encontrado probando la
 app de verdad, no leyendo el código.)*
 
+**Decisión 4 (bonus, corta) — Por qué automaticé la generación del reporte,
+y qué encontré al hacerlo.**
+
+> "Un profesor me preguntó algo razonable: ¿qué pasa si cambio los
+> departamentos, o llega data nueva? ¿Tengo que reescribir el reporte a
+> mano? La respuesta parcial es sí, pero solo la parte de interpretación.
+> Construí una Fase 5 que recalcula automáticamente cada cifra que el
+> reporte cita — el Gini, los tiempos por departamento, el factor de
+> desvío, las recomendaciones de siting — como macros de LaTeX generadas
+> desde los datos, y recompila el PDF con un solo comando."
+
+> "Y al construir esa automatización encontré un error real en mi propio
+> reporte: yo había escrito a mano que el distrito con peor acceso era
+> 'Paucartambo'. Pero RENIPRESS autorreporta el distrito de un
+> establecimiento — un campo de texto, no necesariamente el polígono real
+> — y el distrito verdadero, por geometría, es Kosñipata, un distrito
+> vecino dentro de la misma provincia. Mi propia automatización encontró
+> un bug en mi propia redacción. Lo corregí y lo documenté."
+
+*(Si vas corto de tiempo, esta es la decisión más fácil de recortar a una
+sola frase — pero es una buena forma de cerrar la sección de metodología
+mostrando que la rigurosidad no fue solo del código, sino también de cómo
+verificas lo que escribes sobre él.)*
+
 ---
 
 ## 6:00 – 9:30 | Demo en vivo del dashboard
@@ -134,11 +158,11 @@ orden:
 
    > "En vez de que yo elija a mano qué establecimiento simular, este
    > algoritmo recorre TODOS los candidatos y los ordena por impacto. Miren
-   > esto: en Cusco, la recomendación número uno es el propio
-   > establecimiento de **Paucartambo** — el mismo distrito que identificamos
-   > como el peor del estudio. Y en Lambayeque, un solo establecimiento en
-   > Olmos agregaría más de 42 mil personas cubiertas — casi tanto como los
-   > otros cuatro candidatos recomendados juntos."
+   > esto: en Cusco, la recomendación número uno es el establecimiento
+   > **Paucartambo**, en la misma provincia que Kosñipata — el distrito con
+   > peor acceso de todo el estudio. Y en Lambayeque, un solo
+   > establecimiento en Olmos agregaría más de 42 mil personas cubiertas —
+   > casi tanto como los otros cuatro candidatos recomendados juntos."
 
 8. **Panel de calidad de datos** (cierre de la demo, transición a
    hallazgos): vuelve a mostrar brevemente el reporte de la Fase 1.
@@ -150,16 +174,20 @@ orden:
 Con números reales, no solo texto:
 
 > "Con los 3 departamentos: 78.4% de la población llega en 30 minutos o
-> menos, pero con un Gini de acceso de 0.670 — muy desigual. Cusco tiene
-> el mejor promedio de los tres (15.4 min) pero también el peor distrito
-> individual de todo el estudio (Paucartambo, casi 195 minutos). Caminar
-> toma, en mediana, **12 veces más** que ir en auto — sorprendentemente
-> parecido entre los tres departamentos, algo que no esperaba."
+> menos, pero con un Gini de acceso de 0.669 — muy desigual. Cusco tiene un
+> promedio saludable (15.4 min, mejor que Lambayeque aunque no el mejor de
+> los tres — ese es Loreto, por una razón de muestreo que explico en
+> Limitaciones, no por mejor infraestructura) pero también el peor
+> distrito individual de todo el estudio: Kosñipata, casi 195 minutos.
+> Caminar toma, en mediana, **12 veces más** que ir en auto —
+> sorprendentemente parecido entre los tres departamentos, algo que no
+> esperaba."
 
 > "La recomendación concreta: priorizar la elevación de categoría de los
 > establecimientos I-3/I-4 que mi algoritmo de siting identificó, empezando
-> por Paucartambo en Cusco y el establecimiento de Olmos en Lambayeque —
-> antes que construir infraestructura nueva desde cero."
+> por el establecimiento Paucartambo en esa misma provincia de Cusco y el
+> establecimiento de Olmos en Lambayeque — antes que construir
+> infraestructura nueva desde cero."
 
 ---
 
@@ -201,6 +229,10 @@ corrió un script. Elige 3-4:
   en pestañas listas para alternar.
 - Practica la transición 6:00→9:30 (la demo) al menos una vez cronometrada
   — es la sección más larga y la que más fácil se te va de tiempo.
+- La Decisión 4 (Fase 5 / reporte automatizado) es la más nueva y la más
+  fácil de recortar a una sola frase si el bloque de metodología
+  (4:00-6:00) se te está yendo de los 2 minutos — no hace falta
+  demostrarla en vivo, es solo una anécdota hablada.
 - Si te quedas corto de tiempo en algún lado, recorta la sección de
   hallazgos (9:30-10:45) antes que Limitaciones o la Demo — son las que
   más puntos valen.
